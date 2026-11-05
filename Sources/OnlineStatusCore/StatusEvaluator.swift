@@ -101,7 +101,7 @@ public struct StatusEvaluator: Sendable {
 
     /// The level suggested by the samples alone, without hysteresis.
     /// Returns `nil` when there isn't enough data yet.
-    public func rawLevel(_ samples: some Collection<Sample>, now: Date) -> ConnectivityLevel? {
+    public func rawLevel(_ samples: some BidirectionalCollection<Sample>, now: Date) -> ConnectivityLevel? {
         let windowStart = now.addingTimeInterval(-configuration.window)
         let recent = samples.filter { $0.date >= windowStart }
         guard let last = recent.last else { return nil }
@@ -128,7 +128,7 @@ public struct StatusEvaluator: Sendable {
 
     /// Re-evaluate after a new sample. `samples` must be in chronological order.
     @discardableResult
-    public mutating func evaluate(_ samples: some Collection<Sample>, now: Date) -> DisplayStatus {
+    public mutating func evaluate(_ samples: some BidirectionalCollection<Sample>, now: Date) -> DisplayStatus {
         let portal = samples.last?.failure == .captivePortal
         guard let raw = rawLevel(samples, now: now) else {
             // Not enough data; keep whatever we were showing.

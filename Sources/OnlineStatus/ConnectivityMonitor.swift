@@ -132,7 +132,7 @@ final class ConnectivityMonitor: ObservableObject {
                 }
                 guard !Task.isCancelled, let self else { return }
                 self.record(sample)
-                let wait = .milliseconds(Int64(settings.interval * 1000)) - (clock.now - began)
+                let wait = Duration.milliseconds(Int64(settings.interval * 1000)) - (clock.now - began)
                 if wait > .zero {
                     try? await Task.sleep(for: wait)
                 }
