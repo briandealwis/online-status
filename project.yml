@@ -1,0 +1,28 @@
+# XcodeGen spec for building an archive for the Mac App Store:
+#   brew install xcodegen && xcodegen generate && open OnlineStatus.xcodeproj
+name: OnlineStatus
+options:
+  deploymentTarget:
+    macOS: "14.0"
+packages:
+  OnlineStatusPackage:
+    path: .
+targets:
+  OnlineStatus:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/OnlineStatus
+    dependencies:
+      - package: OnlineStatusPackage
+        product: OnlineStatusCore
+    settings:
+      base:
+        PRODUCT_NAME: OnlineStatus
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.briandealwis.OnlineStatus
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/OnlineStatus.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"

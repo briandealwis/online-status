@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  swiftpm:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test core logic
+        run: swift test
+      - name: Build app bundle
+        run: scripts/build-app.sh
+      - name: Check signature and entitlements
+        run: codesign --display --entitlements - build/OnlineStatus.app
+      - name: Zip app
+        run: ditto -c -k --keepParent build/OnlineStatus.app build/OnlineStatus.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OnlineStatus
+          path: build/OnlineStatus.zip
+
+  xcode:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build with Xcode
+        run: xcodebuild -project OnlineStatus.xcodeproj -scheme OnlineStatus -configuration Release CODE_SIGNING_ALLOWED=NO build
