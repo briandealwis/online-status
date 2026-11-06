@@ -66,14 +66,71 @@ public struct MonitorSettings: Equatable, Sendable {
         normalize()
     }
 
-    /// Keeps values within sensible bounds.
+    /// Upper bounds for user-editable values.
+    public enum Limit {
+        public static let interval: TimeInterval = 3600
+        public static let timeout: TimeInterval = 60
+        public static let latencyMs: Double = 60_000
+        public static let recoverySeconds: TimeInterval = 3600
+        /// Longest DNS name.
+        public static let hostLength = 253
+        public static let urlLength = 2048
+    }
+
+    /// Keeps every value within sensible lower and upper bounds.
     public mutating func normalize() {
-        interval = min(max(interval, 1), 3600)
-        tetheredInterval = min(max(tetheredInterval, interval), 3600)
+        interval = Self.clamp(interval, 1, Limit.interval)
+        tetheredInterval = Self.clamp(tetheredInterval, interval, Limit.interval)
         // A probe must finish before the next one is due.
-        timeout = min(max(timeout, 0.5), interval)
-        poorLatencyMs = max(poorLatencyMs, goodLatencyMs)
-        recoverySeconds = max(recoverySeconds, 0)
+        timeout = Self.clamp(timeout, 0.5, min(interval, Limit.timeout))
+        goodLatencyMs = Self.clamp(goodLatencyMs, 1, Limit.latencyMs)
+        poorLatencyMs = Self.clamp(poorLatencyMs, goodLatencyMs, Limit.latencyMs)
+        recoverySeconds = Self.clamp(recoverySeconds, 0, Limit.recoverySeconds)
+        if pingHost.count > Limit.hostLength { pingHost = Self.defaultPingHost }
+        if url.count > Limit.urlLength { url = Self.defaultURL }
+    }
+
+    /// Hosts that may be fetched over plain `http://`. App Transport Security blocks plain
+    /// HTTP to every other host. Keep in sync with `NSExceptionDomains` in `App/Info.plist`.
+    public static let plainHTTPHosts = [
+        "captive.apple.com",
+        "connectivitycheck.gstatic.com",
+        "clients3.google.com",
+        "detectportal.firefox.com",
+        "www.msftconnecttest.com",
+    ]
+
+    public enum URLProblem: Equatable, Sendable {
+        case invalid
+        case unsupportedScheme
+        case plainHTTPNotAllowed
+
+        public var description: String {
+            switch self {
+            case .invalid:
+                return "Not a valid URL"
+            case .unsupportedScheme:
+                return "The URL must start with http:// or https://"
+            case .plainHTTPNotAllowed:
+                return "Plain http:// is only allowed for "
+                    + MonitorSettings.plainHTTPHosts.joined(separator: ", ") + ". Use https://"
+            }
+        }
+    }
+
+    /// Checks that `string` is an http(s) URL with a host that the app may fetch.
+    public static func validateURL(_ string: String) -> Result<URL, URLProblem> {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count <= Limit.urlLength,
+              let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased()
+        else { return .failure(.invalid) }
+        guard scheme == "http" || scheme == "https" else { return .failure(.unsupportedScheme) }
+        guard let host = url.host?.lowercased(), !host.isEmpty else { return .failure(.invalid) }
+        if scheme == "http" && !plainHTTPHosts.contains(host) {
+            return .failure(.plainHTTPNotAllowed)
+        }
+        return .success(url)
     }
 
     /// A short description of what is being probed, e.g. "Ping 8.8.8.8".
@@ -114,6 +171,10 @@ public struct MonitorSettings: Equatable, Sendable {
             return nil
         }
         return trimmed
+    }
+
+    private static func clamp(_ value: Double, _ lower: Double, _ upper: Double) -> Double {
+        min(max(value, lower), max(lower, upper))
     }
 
     private static func positive(_ value: Double) -> Double? {

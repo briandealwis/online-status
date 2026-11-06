@@ -196,20 +196,58 @@ final class ProbingTests: XCTestCase {
         XCTAssertEqual(ICMPEcho.checksum([0x00, 0x01, 0xf2, 0x03, 0xf4, 0xf5, 0xf6, 0xf7]), 0x220d)
     }
 
-    func testParseReplyWithAndWithoutIPHeader() {
-        var reply = ICMPEcho.request(identifier: 0xabcd, sequence: 42, payload: [1, 2, 3])
+    /// An echo reply as a server would send it, with a valid checksum.
+    private func makeReply(identifier: UInt16, sequence: UInt16, payload: [UInt8]) -> [UInt8] {
+        var reply = ICMPEcho.request(identifier: identifier, sequence: sequence, payload: payload)
         reply[0] = ICMPEcho.echoReplyType
-        XCTAssertEqual(ICMPEcho.parseReply(reply), ICMPEcho.Reply(identifier: 0xabcd, sequence: 42))
-
-        var ipHeader = [UInt8](repeating: 0, count: 20)
-        ipHeader[0] = 0x45
-        XCTAssertEqual(ICMPEcho.parseReply(ipHeader + reply), ICMPEcho.Reply(identifier: 0xabcd, sequence: 42))
+        reply[2] = 0
+        reply[3] = 0
+        let sum = ICMPEcho.checksum(reply)
+        reply[2] = UInt8(sum >> 8)
+        reply[3] = UInt8(sum & 0xff)
+        return reply
     }
 
-    func testParseIgnoresRequestsAndShortPackets() {
+    private func ipHeader(source: [UInt8]) -> [UInt8] {
+        var header = [UInt8](repeating: 0, count: 20)
+        header[0] = 0x45
+        header.replaceSubrange(12..<16, with: source)
+        return header
+    }
+
+    func testParseReplyWithAndWithoutIPHeader() {
+        let reply = makeReply(identifier: 0xabcd, sequence: 42, payload: [1, 2, 3])
+        XCTAssertEqual(ICMPEcho.parseReply(reply),
+                       ICMPEcho.Reply(identifier: 0xabcd, sequence: 42, payload: [1, 2, 3]))
+
+        let parsed = ICMPEcho.parseReply(ipHeader(source: [8, 8, 4, 4]) + reply)
+        XCTAssertEqual(parsed, ICMPEcho.Reply(identifier: 0xabcd, sequence: 42, payload: [1, 2, 3],
+                                              source: 0x0808_0404))
+    }
+
+    func testParseIgnoresRequestsShortPacketsAndBadChecksums() {
         let request = ICMPEcho.request(identifier: 1, sequence: 1, payload: [])
         XCTAssertNil(ICMPEcho.parseReply(request))
         XCTAssertNil(ICMPEcho.parseReply([0, 0, 0]))
+        var corrupt = makeReply(identifier: 1, sequence: 1, payload: [9, 9])
+        corrupt[9] ^= 0xff
+        XCTAssertNil(ICMPEcho.parseReply(corrupt))
+    }
+
+    func testReplyMatching() {
+        let payload: [UInt8] = [1, 2, 3, 4]
+        let google: UInt32 = 0x0808_0808
+        func check(_ reply: ICMPEcho.Reply) -> Bool {
+            ICMPEcho.reply(reply, matches: 7, sequence: 9, payload: payload, expectedSource: google)
+        }
+        XCTAssertTrue(check(.init(identifier: 7, sequence: 9, payload: payload, source: google)))
+        XCTAssertTrue(check(.init(identifier: 7, sequence: 9, payload: payload, source: nil)))
+        XCTAssertFalse(check(.init(identifier: 7, sequence: 9, payload: payload, source: 0x0A00_0001)),
+                       "reply from another address")
+        XCTAssertFalse(check(.init(identifier: 8, sequence: 9, payload: payload, source: google)))
+        XCTAssertFalse(check(.init(identifier: 7, sequence: 10, payload: payload, source: google)))
+        XCTAssertFalse(check(.init(identifier: 7, sequence: 9, payload: [1, 2, 3, 5], source: google)),
+                       "forged reply without our random payload")
     }
 }
 
@@ -230,6 +268,43 @@ final class MonitorSettingsTests: XCTestCase {
         XCTAssertEqual(settings.timeout, 5, "timeout is capped at the interval")
         XCTAssertEqual(settings.pingHost, "8.8.8.8")
         XCTAssertEqual(settings.makeEvaluatorConfiguration(interval: settings.interval).window, 60)
+    }
+
+    func testValuesAreClampedAtBothEnds() {
+        let store = UserDefaults(suiteName: "MonitorSettingsTests-\(UUID().uuidString)")!
+        store.set(1e9, forKey: MonitorSettings.Key.interval)
+        store.set(1e9, forKey: MonitorSettings.Key.tetheredInterval)
+        store.set(1e9, forKey: MonitorSettings.Key.timeout)
+        store.set(1e9, forKey: MonitorSettings.Key.goodLatencyMs)
+        store.set(1e9, forKey: MonitorSettings.Key.poorLatencyMs)
+        store.set(1e9, forKey: MonitorSettings.Key.recoverySeconds)
+        store.set(String(repeating: "a", count: 300), forKey: MonitorSettings.Key.pingHost)
+        store.set("https://example.com/" + String(repeating: "a", count: 3000), forKey: MonitorSettings.Key.url)
+        let settings = MonitorSettings(defaults: store)
+        XCTAssertEqual(settings.interval, MonitorSettings.Limit.interval)
+        XCTAssertEqual(settings.tetheredInterval, MonitorSettings.Limit.interval)
+        XCTAssertEqual(settings.timeout, MonitorSettings.Limit.timeout)
+        XCTAssertEqual(settings.goodLatencyMs, MonitorSettings.Limit.latencyMs)
+        XCTAssertEqual(settings.poorLatencyMs, MonitorSettings.Limit.latencyMs)
+        XCTAssertEqual(settings.recoverySeconds, MonitorSettings.Limit.recoverySeconds)
+        XCTAssertEqual(settings.pingHost, MonitorSettings.defaultPingHost)
+        XCTAssertEqual(settings.url, MonitorSettings.defaultURL)
+    }
+
+    func testURLValidation() {
+        func problem(_ string: String) -> MonitorSettings.URLProblem? {
+            if case .failure(let problem) = MonitorSettings.validateURL(string) { return problem }
+            return nil
+        }
+        XCTAssertNil(problem(MonitorSettings.defaultURL))
+        XCTAssertNil(problem("  https://example.com/health  "))
+        XCTAssertNil(problem("http://captive.apple.com/hotspot-detect.html"))
+        XCTAssertEqual(problem("http://example.com/"), .plainHTTPNotAllowed)
+        XCTAssertEqual(problem("file:///etc/passwd"), .unsupportedScheme)
+        XCTAssertEqual(problem("ftp://example.com/"), .unsupportedScheme)
+        XCTAssertEqual(problem("javascript:alert(1)"), .unsupportedScheme)
+        XCTAssertEqual(problem("https://"), .invalid)
+        XCTAssertEqual(problem("not a url"), .invalid)
     }
 
     func testTetheredBackoff() {

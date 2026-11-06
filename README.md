@@ -51,12 +51,18 @@ There are two types of probe:
 
 * **Ping** (the default). The application sends an ICMP echo to `8.8.8.8`, or to a host that
   you select. Only IPv4 is possible. The application uses an unprivileged ICMP socket, thus it
-  does not need root access. In the App Sandbox, the application must have the entitlement for
+  does not need root access. Each probe uses a random identifier, sequence number and payload.
+  The application accepts a reply only if all three agree and the reply comes from the target
+  address. In the App Sandbox, the application must have the entitlement for
   incoming network traffic and the entitlement for outgoing network traffic. Each probe uses
   approximately 100 bytes. At the default interval, this is less than 1 MB each day.
 * **Fetch URL**. The application sends an HTTP GET request to
-  `https://connectivitycheck.gstatic.com/generate_204`, or to a URL that you select. The
-  application does not follow redirects. Use the setting that agrees with the URL:
+  `https://connectivitycheck.gstatic.com/generate_204`, or to a URL that you select. The URL
+  must start with `https://`. Plain `http://` is possible only for these connectivity-check
+  hosts: `captive.apple.com`, `connectivitycheck.gstatic.com`, `clients3.google.com`,
+  `detectportal.firefox.com` and `www.msftconnecttest.com`. The application does not follow
+  redirects. It reads only the response headers and does not read the body. Use the setting
+  that agrees with the URL:
   * "204 No Content only" (for `generate_204`). A 200 response or a redirect shows 🔒. This
     response or redirect usually comes from a captive portal.
   * "Any 2xx" (for other URLs). A redirect shows 🔒.
@@ -151,9 +157,9 @@ To make an archive in Xcode, do these steps:
 The bundle identifier is `io.github.briandealwis.OnlineStatus`. To use a different identifier,
 change it in `project.yml` and in `App/Info.plist`.
 
-`App/Info.plist` lets the application load plain HTTP. This is necessary for check URLs that
-start with `http://`. App Review can ask about this setting. The reason is that the user can
-select the URL for the connectivity check.
+`App/Info.plist` lets the application load plain HTTP only from the connectivity-check hosts
+in the list above. App Transport Security applies to all other hosts. If you change the list,
+change `MonitorSettings.plainHTTPHosts` also.
 
 ## Layout
 

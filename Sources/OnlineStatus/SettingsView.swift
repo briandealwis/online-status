@@ -34,6 +34,12 @@ struct SettingsView: View {
                     TextField("Host (IPv4)", text: $pingHost, prompt: Text(MonitorSettings.defaultPingHost))
                 } else {
                     TextField("URL", text: $url, prompt: Text(MonitorSettings.defaultURL))
+                    if case .failure(let problem) = MonitorSettings.validateURL(url) {
+                        Text(problem.description)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     Picker("Success when", selection: $expectation) {
                         ForEach(HTTPExpectation.allCases, id: \.rawValue) { expectation in
                             Text(expectation.name).tag(expectation.rawValue)
