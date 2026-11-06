@@ -77,6 +77,35 @@ struct GraphView: View {
         return result
     }
 
+    /// Every whole minute inside the visible range.
+    private func minuteTicks(start: Date, now: Date) -> [Date] {
+        var tick = (start.timeIntervalSince1970 / 60).rounded(.up) * 60
+        var ticks: [Date] = []
+        while tick <= now.timeIntervalSince1970 {
+            ticks.append(Date(timeIntervalSince1970: tick))
+            tick += 60
+        }
+        return ticks
+    }
+
+    /// Centre each time label under its tick, but slide the anchor towards the label's edge as the
+    /// tick nears either end of the plot, so the label stays fully inside instead of being clipped
+    /// to "…" or dropped.
+    private func labelAnchor(for date: Date?, start: Date, now: Date) -> UnitPoint {
+        guard let date else { return .top }
+        // Seconds from an edge over which the anchor slides (about a label's width).
+        let ramp: TimeInterval = 40
+        let fromStart = date.timeIntervalSince(start)
+        let fromEnd = now.timeIntervalSince(date)
+        var x = 0.5
+        if fromStart < ramp {
+            x = max(0, fromStart / ramp) * 0.5
+        } else if fromEnd < ramp {
+            x = 1 - max(0, fromEnd / ramp) * 0.5
+        }
+        return UnitPoint(x: x, y: 0)
+    }
+
     private func chart(samples: [Sample], start: Date, now: Date) -> some View {
         let points = samples.compactMap { sample in
             sample.rtt.map { Point(date: sample.date, ms: $0 * 1000) }
@@ -114,9 +143,13 @@ struct GraphView: View {
         .chartXScale(domain: start...now)
         .chartYScale(domain: 1...top, type: .log)
         .chartXAxis {
-            AxisMarks(values: .stride(by: .minute)) { _ in
+            AxisMarks(values: minuteTicks(start: start, now: now)) { value in
                 AxisGridLine()
-                AxisValueLabel(format: .dateTime.hour().minute())
+                AxisValueLabel(
+                    format: .dateTime.hour().minute(),
+                    anchor: labelAnchor(for: value.as(Date.self), start: start, now: now),
+                    collisionResolution: .disabled
+                )
             }
         }
         .chartYAxis {
