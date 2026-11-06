@@ -14,11 +14,16 @@ A coloured dot in the menu bar shows how your connection is doing:
 | 🔒 | Wi-Fi login required (captive portal) |
 | ◯ | Measuring (just started, or the network changed) |
 
-Hover over the dot for a live summary: the latest latency and the median, p90, max and loss
+Hover over the dot for a live summary: the latest latency, and the median, p90, max and loss
 for the last five minutes.
-Click it for a graph of the last five minutes, with Probe Now, Settings and Quit buttons.
 
-<img src="docs/screenshots/summary-window.png" width="600" alt="The popover: a green status dot, latency graph for the last five minutes on a log scale with dashed good and poor thresholds, and median, p90, min/max, loss and probe counts">
+<img src="docs/screenshots/hover.png" width="405" alt="Hover summary under the menu bar dot: Good, 29 ms; last 5 min median 26 ms, p90 31 ms, max 107 ms; loss 0% (0 of 26 probes failed); fetching generate_204 every 10 s">
+
+Click it for a graph of the last five minutes, with Probe Now, Settings and Quit buttons. The
+background is shaded by status, the dashed lines mark the good and poor thresholds, and failed
+probes appear as red vertical lines.
+
+<img src="docs/screenshots/summary-window.png" width="491" alt="Graph popover: green status dot, Good, 26 ms; latency around 20 to 30 ms over five minutes on a log scale with dashed threshold lines; median 26 ms, p90 31 ms, min/max 20/32 ms, loss 0%, 30 probes">
 
 ## How it checks
 
