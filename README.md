@@ -18,6 +18,8 @@ Hover over the dot for a live summary: the latest latency and the median, p90, m
 for the last five minutes.
 Click it for a graph of the last five minutes, with Probe Now, Settings and Quit buttons.
 
+<img src="docs/screenshots/summary-window.png" width="600" alt="The popover: a green status dot, latency graph for the last five minutes on a log scale with dashed good and poor thresholds, and median, p90, min/max, loss and probe counts">
+
 ## How it checks
 
 Every 10 seconds (configurable) it runs one probe, with a 3 second timeout (configurable).
