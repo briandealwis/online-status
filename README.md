@@ -23,7 +23,7 @@ Click it for a graph of the last five minutes, with Probe Now, Settings and Quit
 background is shaded by status, the dashed lines mark the good and poor thresholds, and failed
 probes appear as red vertical lines.
 
-<img src="docs/screenshots/summary-window.png" width="491" alt="Graph popover: green status dot, Good, 26 ms; latency around 20 to 30 ms over five minutes on a log scale with dashed threshold lines; median 26 ms, p90 31 ms, min/max 20/32 ms, loss 0%, 30 probes">
+<img src="docs/screenshots/summary-window.png" width="487" alt="Graph popover: green status dot, Good, 27 ms; latency settling from 137 ms to around 25 ms over the last few minutes on a log scale with dashed threshold lines and green shading; median 27 ms, p90 32 ms, min/max 23/137 ms, loss 0%, 15 probes">
 
 ## How it checks
 
