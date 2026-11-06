@@ -100,7 +100,7 @@ public struct MonitorSettings: Equatable, Sendable {
         "www.msftconnecttest.com",
     ]
 
-    public enum URLProblem: Equatable, Sendable {
+    public enum URLProblem: Error, Equatable, Sendable {
         case invalid
         case unsupportedScheme
         case plainHTTPNotAllowed

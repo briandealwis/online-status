@@ -205,7 +205,7 @@ private final class PingOperation: @unchecked Sendable {
         }
         dnsRef = ref
         // Callbacks arrive on our queue; the reference is deallocated on it too.
-        DNSServiceSetDispatchQueue(ref, queue)
+        _ = DNSServiceSetDispatchQueue(ref, queue)
     }
 
     private func resolved(error: DNSServiceErrorType, address: UnsafePointer<sockaddr>?) {
