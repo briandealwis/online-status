@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let monitor = ConnectivityMonitor()
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
+    private var hoverSummary: HoverSummary?
     private var settingsWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -32,6 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.action = #selector(togglePopover(_:))
         item.button?.imagePosition = .imageOnly
         statusItem = item
+        if let button = item.button {
+            let hover = HoverSummary(monitor: monitor, button: button)
+            hover.isSuppressed = { [weak self] in self?.popover.isShown ?? false }
+            hoverSummary = hover
+        }
 
         popover.behavior = .transient
         popover.animates = false
@@ -65,11 +71,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = statusImage(for: status)
             button.imagePosition = .imageOnly
         }
-        button.toolTip = tooltip(status: status, summary: monitor.recentSummary, settings: monitor.settings)
         button.setAccessibilityLabel("Connectivity: \(status.name)")
     }
 
     @objc private func togglePopover(_ sender: Any?) {
+        hoverSummary?.hide()
         if popover.isShown {
             popover.performClose(sender)
         } else if let button = statusItem?.button {

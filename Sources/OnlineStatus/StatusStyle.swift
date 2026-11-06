@@ -63,8 +63,8 @@ func formatPercent(_ fraction: Double) -> String {
     String(format: "%.0f%%", fraction * 100)
 }
 
-/// Text for the menu bar tooltip.
-func tooltip(status: DisplayStatus, summary: SampleSummary, settings: MonitorSettings) -> String {
+/// Lines for the hover summary: status and latest result, 5-minute stats, what is probed.
+func summaryLines(status: DisplayStatus, summary: SampleSummary, settings: MonitorSettings) -> [String] {
     var lines: [String] = []
     if let last = summary.last {
         if let failure = last.failure {
@@ -81,5 +81,5 @@ func tooltip(status: DisplayStatus, summary: SampleSummary, settings: MonitorSet
         lines.append("Loss \(formatPercent(summary.loss)) (\(summary.failureCount) of \(summary.count) probes failed)")
     }
     lines.append("\(settings.targetDescription), every \(Int(settings.interval)) s")
-    return lines.joined(separator: "\n")
+    return lines
 }

@@ -14,7 +14,8 @@ A coloured dot in the menu bar shows how your connection is doing:
 | 🔒 | Wi-Fi login required (captive portal) |
 | ◯ | Measuring (just started, or the network changed) |
 
-Hover over the dot for the latest latency and statistics for the last five minutes.
+Hover over the dot for a live summary: the latest latency and the median, p90, max and loss
+for the last five minutes.
 Click it for a graph of the last five minutes, with Probe Now, Settings and Quit buttons.
 
 ## How it checks
