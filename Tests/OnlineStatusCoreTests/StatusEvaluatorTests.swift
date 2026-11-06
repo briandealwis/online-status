@@ -229,6 +229,28 @@ final class MonitorSettingsTests: XCTestCase {
         settings = MonitorSettings(defaults: store)
         XCTAssertEqual(settings.timeout, 5, "timeout is capped at the interval")
         XCTAssertEqual(settings.pingHost, "8.8.8.8")
-        XCTAssertEqual(settings.evaluatorConfiguration.window, 60)
+        XCTAssertEqual(settings.makeEvaluatorConfiguration(interval: settings.interval).window, 60)
+    }
+
+    func testTetheredBackoff() {
+        let store = UserDefaults(suiteName: "MonitorSettingsTests-\(UUID().uuidString)")!
+        var settings = MonitorSettings(defaults: store)
+        XCTAssertTrue(settings.tetheredBackoff)
+        XCTAssertEqual(settings.probeInterval(onExpensiveNetwork: false), 10)
+        XCTAssertEqual(settings.probeInterval(onExpensiveNetwork: true), 30)
+        XCTAssertEqual(settings.scheduleDescription(onExpensiveNetwork: true), "Ping 8.8.8.8, every 30 s (tethered)")
+        XCTAssertEqual(settings.scheduleDescription(onExpensiveNetwork: false), "Ping 8.8.8.8, every 10 s")
+        // A longer interval means a longer evaluation window.
+        XCTAssertEqual(settings.makeEvaluatorConfiguration(interval: 30).window, 180)
+
+        // Never probes faster when tethered than normally.
+        store.set(60.0, forKey: MonitorSettings.Key.interval)
+        settings = MonitorSettings(defaults: store)
+        XCTAssertEqual(settings.probeInterval(onExpensiveNetwork: true), 60)
+
+        store.set(false, forKey: MonitorSettings.Key.tetheredBackoff)
+        settings = MonitorSettings(defaults: store)
+        XCTAssertEqual(settings.probeInterval(onExpensiveNetwork: true), 60)
+        XCTAssertEqual(settings.scheduleDescription(onExpensiveNetwork: true), "Ping 8.8.8.8, every 60 s")
     }
 }

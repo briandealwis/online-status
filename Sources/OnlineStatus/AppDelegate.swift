@@ -50,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         monitor.$status
-            .combineLatest(monitor.$samples, monitor.$settings)
+            .combineLatest(monitor.$samples, monitor.$settings, monitor.$onExpensiveNetwork)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.updateStatusItem() }
             .store(in: &cancellables)

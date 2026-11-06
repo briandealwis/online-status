@@ -189,7 +189,7 @@ struct GraphView: View {
 
     private var footer: some View {
         HStack {
-            Text("\(monitor.settings.targetDescription) every \(Int(monitor.settings.interval)) s")
+            Text(monitor.scheduleDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

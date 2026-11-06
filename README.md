@@ -30,6 +30,11 @@ probes appear as red vertical lines.
 Every 10 seconds (configurable) it runs one probe, with a 3 second timeout (configurable).
 Timeouts count as failures. Only one probe runs at a time.
 
+To save your data plan, it checks only every 30 seconds (configurable, or turn it off) when macOS
+marks the network as expensive (tethered to an iPhone or another personal hotspot) or Low Data
+Mode is on. The hover summary and graph then show "(tethered)". At the slower rate the status is
+judged over the last six probes (three minutes) instead of one minute, so it reacts more slowly.
+
 * **Ping** (default): an ICMP echo to `8.8.8.8` or a host of your choice (IPv4 only). It uses an
   unprivileged ICMP socket, so it needs no root access. Inside the App Sandbox this needs the
   incoming-network entitlement as well as the outgoing one.

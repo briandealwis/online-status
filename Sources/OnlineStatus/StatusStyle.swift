@@ -64,7 +64,7 @@ func formatPercent(_ fraction: Double) -> String {
 }
 
 /// Lines for the hover summary: status and latest result, 5-minute stats, what is probed.
-func summaryLines(status: DisplayStatus, summary: SampleSummary, settings: MonitorSettings) -> [String] {
+func summaryLines(status: DisplayStatus, summary: SampleSummary, schedule: String) -> [String] {
     var lines: [String] = []
     if let last = summary.last {
         if let failure = last.failure {
@@ -80,6 +80,6 @@ func summaryLines(status: DisplayStatus, summary: SampleSummary, settings: Monit
             + "p90 \(formatMilliseconds(summary.p90RTT)), max \(formatMilliseconds(summary.maxRTT))")
         lines.append("Loss \(formatPercent(summary.loss)) (\(summary.failureCount) of \(summary.count) probes failed)")
     }
-    lines.append("\(settings.targetDescription), every \(Int(settings.interval)) s")
+    lines.append(schedule)
     return lines
 }

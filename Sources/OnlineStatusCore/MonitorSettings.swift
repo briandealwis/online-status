@@ -12,6 +12,8 @@ public struct MonitorSettings: Equatable, Sendable {
         public static let goodLatencyMs = "goodLatencyMs"
         public static let poorLatencyMs = "poorLatencyMs"
         public static let recoverySeconds = "recoverySeconds"
+        public static let tetheredBackoff = "tetheredBackoff"
+        public static let tetheredInterval = "tetheredInterval"
     }
 
     public static let defaultPingHost = "8.8.8.8"
@@ -27,6 +29,8 @@ public struct MonitorSettings: Equatable, Sendable {
         Key.goodLatencyMs: 150.0,
         Key.poorLatencyMs: 500.0,
         Key.recoverySeconds: 30.0,
+        Key.tetheredBackoff: true,
+        Key.tetheredInterval: 30.0,
     ]
 
     public var mode: ProbeMode = .ping
@@ -40,6 +44,10 @@ public struct MonitorSettings: Equatable, Sendable {
     public var goodLatencyMs: Double = 150
     public var poorLatencyMs: Double = 500
     public var recoverySeconds: TimeInterval = 30
+    /// Probe less often on expensive networks (personal hotspot, iPhone tethering) or in Low Data Mode.
+    public var tetheredBackoff = true
+    /// Seconds between probes when backing off. Never shorter than `interval`.
+    public var tetheredInterval: TimeInterval = 30
 
     public init() {}
 
@@ -53,12 +61,15 @@ public struct MonitorSettings: Equatable, Sendable {
         goodLatencyMs = Self.positive(store.double(forKey: Key.goodLatencyMs)) ?? 150
         poorLatencyMs = Self.positive(store.double(forKey: Key.poorLatencyMs)) ?? 500
         recoverySeconds = Self.positive(store.double(forKey: Key.recoverySeconds)) ?? 30
+        tetheredBackoff = store.object(forKey: Key.tetheredBackoff) as? Bool ?? true
+        tetheredInterval = Self.positive(store.double(forKey: Key.tetheredInterval)) ?? 30
         normalize()
     }
 
     /// Keeps values within sensible bounds.
     public mutating func normalize() {
         interval = min(max(interval, 1), 3600)
+        tetheredInterval = min(max(tetheredInterval, interval), 3600)
         // A probe must finish before the next one is due.
         timeout = min(max(timeout, 0.5), interval)
         poorLatencyMs = max(poorLatencyMs, goodLatencyMs)
@@ -73,8 +84,20 @@ public struct MonitorSettings: Equatable, Sendable {
         }
     }
 
-    /// Evaluator thresholds derived from these settings.
-    public var evaluatorConfiguration: EvaluatorConfiguration {
+    /// Seconds between probes, given whether the current network is expensive or constrained.
+    public func probeInterval(onExpensiveNetwork expensive: Bool) -> TimeInterval {
+        expensive && tetheredBackoff ? tetheredInterval : interval
+    }
+
+    /// E.g. "Ping 8.8.8.8, every 30 s (tethered)".
+    public func scheduleDescription(onExpensiveNetwork expensive: Bool) -> String {
+        let seconds = Int(probeInterval(onExpensiveNetwork: expensive))
+        let suffix = expensive && tetheredBackoff ? " (tethered)" : ""
+        return "\(targetDescription), every \(seconds) s\(suffix)"
+    }
+
+    /// Evaluator thresholds derived from these settings for a given probe interval.
+    public func makeEvaluatorConfiguration(interval: TimeInterval) -> EvaluatorConfiguration {
         var config = EvaluatorConfiguration()
         // Look at about six samples, and never less than a minute.
         config.window = max(60, interval * 6)

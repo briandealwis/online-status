@@ -80,7 +80,7 @@ struct HoverSummaryView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
             let lines = summaryLines(status: monitor.status, summary: monitor.recentSummary,
-                                     settings: monitor.settings)
+                                     schedule: monitor.scheduleDescription)
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                     Text(line)

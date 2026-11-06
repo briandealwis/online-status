@@ -14,6 +14,8 @@ struct SettingsView: View {
     @AppStorage(Key.goodLatencyMs) private var goodLatencyMs = 150.0
     @AppStorage(Key.poorLatencyMs) private var poorLatencyMs = 500.0
     @AppStorage(Key.recoverySeconds) private var recoverySeconds = 30.0
+    @AppStorage(Key.tetheredBackoff) private var tetheredBackoff = true
+    @AppStorage(Key.tetheredInterval) private var tetheredInterval = 30.0
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchError: String?
@@ -54,6 +56,21 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            Section("Personal hotspot") {
+                Toggle("Check less often when tethered", isOn: $tetheredBackoff)
+                if tetheredBackoff {
+                    Stepper(value: $tetheredInterval, in: 5...600, step: 5) {
+                        LabeledContent("Check every", value: "\(Int(max(tetheredInterval, interval))) s")
+                    }
+                }
+                Text("Applies when macOS marks the network as expensive (an iPhone or other personal "
+                    + "hotspot) or Low Data Mode is on, to save your data plan. "
+                    + "Never more often than the normal interval.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Section("Thresholds") {

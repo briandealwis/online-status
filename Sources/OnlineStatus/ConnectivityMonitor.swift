@@ -20,6 +20,13 @@ final class ConnectivityMonitor: ObservableObject {
     @Published private(set) var status: DisplayStatus = .measuring
     @Published private(set) var statusChanges: [StatusChange] = [StatusChange(date: Date(), status: .measuring)]
     @Published private(set) var settings: MonitorSettings
+    /// The current network is a personal hotspot / tether, or Low Data Mode is on.
+    @Published private(set) var onExpensiveNetwork = false
+
+    /// Seconds between probes right now.
+    var currentInterval: TimeInterval { settings.probeInterval(onExpensiveNetwork: onExpensiveNetwork) }
+
+    var scheduleDescription: String { settings.scheduleDescription(onExpensiveNetwork: onExpensiveNetwork) }
 
     private var history = SampleHistory(retention: 60 * 60)
     private var evaluator: StatusEvaluator
@@ -36,7 +43,7 @@ final class ConnectivityMonitor: ObservableObject {
         UserDefaults.standard.register(defaults: MonitorSettings.defaults)
         let settings = MonitorSettings(defaults: .standard)
         self.settings = settings
-        self.evaluator = StatusEvaluator(configuration: settings.evaluatorConfiguration)
+        self.evaluator = StatusEvaluator(configuration: settings.makeEvaluatorConfiguration(interval: settings.interval))
     }
 
     func start() {
@@ -59,8 +66,9 @@ final class ConnectivityMonitor: ObservableObject {
 
         pathMonitor.pathUpdateHandler = { [weak self] path in
             let satisfied = path.status == .satisfied
+            let expensive = path.isExpensive || path.isConstrained
             let signature = "\(path.status) " + path.availableInterfaces.map(\.name).joined(separator: ",")
-            Task { @MainActor in self?.pathUpdated(satisfied: satisfied, signature: signature) }
+            Task { @MainActor in self?.pathUpdated(satisfied: satisfied, expensive: expensive, signature: signature) }
         }
         pathMonitor.start(queue: DispatchQueue(label: "OnlineStatus.path"))
 
@@ -79,12 +87,21 @@ final class ConnectivityMonitor: ObservableObject {
 
     // MARK: - Private
 
-    private func pathUpdated(satisfied: Bool, signature: String) {
+    private func pathUpdated(satisfied: Bool, expensive: Bool, signature: String) {
         let first = pathSignature == nil
-        guard signature != pathSignature else { return }
-        pathSignature = signature
-        pathSatisfied = satisfied
-        if !first { networkChanged() }
+        let expensiveChanged = expensive != onExpensiveNetwork
+        onExpensiveNetwork = expensive
+        evaluator.configuration = settings.makeEvaluatorConfiguration(interval: currentInterval)
+        if signature != pathSignature {
+            pathSignature = signature
+            pathSatisfied = satisfied
+            if !first {
+                networkChanged()
+                return
+            }
+        }
+        // Same interfaces, but e.g. Low Data Mode was toggled: pick up the new interval.
+        if expensiveChanged && settings.tetheredBackoff { restartLoop() }
     }
 
     /// Start judging afresh: old samples stay on the graph but no longer count.
@@ -103,7 +120,7 @@ final class ConnectivityMonitor: ObservableObject {
             || newSettings.url != settings.url
             || newSettings.httpExpectation != settings.httpExpectation
         settings = newSettings
-        evaluator.configuration = newSettings.evaluatorConfiguration
+        evaluator.configuration = newSettings.makeEvaluatorConfiguration(interval: newSettings.probeInterval(onExpensiveNetwork: onExpensiveNetwork))
         if probeChanged {
             networkChanged()
         } else {
@@ -119,6 +136,7 @@ final class ConnectivityMonitor: ObservableObject {
     private func restartLoop() {
         stopLoop()
         let settings = self.settings
+        let interval = currentInterval
         let probe = makeProbe(for: settings)
         loopTask = Task { @MainActor [weak self] in
             let clock = ContinuousClock()
@@ -132,7 +150,7 @@ final class ConnectivityMonitor: ObservableObject {
                 }
                 guard !Task.isCancelled, let self else { return }
                 self.record(sample)
-                let wait = Duration.milliseconds(Int64(settings.interval * 1000)) - (clock.now - began)
+                let wait = Duration.milliseconds(Int64(interval * 1000)) - (clock.now - began)
                 if wait > .zero {
                     try? await Task.sleep(for: wait)
                 }
