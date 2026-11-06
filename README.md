@@ -23,7 +23,8 @@ Every 10 seconds (configurable) it runs one probe, with a 3 second timeout (conf
 Timeouts count as failures. Only one probe runs at a time.
 
 * **Ping** (default): an ICMP echo to `8.8.8.8` or a host of your choice (IPv4 only). It uses an
-  unprivileged ICMP socket, so it needs no root access and works inside the App Sandbox.
+  unprivileged ICMP socket, so it needs no root access. Inside the App Sandbox this needs the
+  incoming-network entitlement as well as the outgoing one.
   About 100 bytes per probe: under 1 MB a day at the default interval.
 * **Fetch URL**: an HTTP GET of `https://connectivitycheck.gstatic.com/generate_204` or a URL of
   your choice. Redirects are not followed. With "204 No Content only" (for `generate_204`),
@@ -68,7 +69,9 @@ Run the unit tests (status logic, statistics, ICMP packets) with `swift test`.
 
 ### Mac App Store
 
-The app is sandboxed (with only the outgoing network entitlement), so it is App Store friendly.
+The app is sandboxed, so it is App Store friendly. It has the outgoing network entitlement and
+also the incoming one (`com.apple.security.network.server`), because the sandbox treats ping
+replies as incoming traffic. It does not listen on any port; App Review may ask about this.
 To build an archive in Xcode:
 
 ```sh

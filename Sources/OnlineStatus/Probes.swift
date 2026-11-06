@@ -163,6 +163,7 @@ struct PingProbe: Probe {
             if count < 0 {
                 if errno == EINTR { continue }
                 if errno == EAGAIN || errno == EWOULDBLOCK { return .failure(.timeout) }
+                if errno == EPERM { return .failure(.error("Ping replies blocked by the App Sandbox")) }
                 return .failure(.error("recv: \(String(cString: strerror(errno)))"))
             }
             if let reply = ICMPEcho.parseReply(Array(buffer[0..<count])),

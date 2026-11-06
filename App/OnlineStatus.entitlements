@@ -6,5 +6,9 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- Receiving ICMP echo replies on an unconnected datagram socket counts as
+	     incoming traffic to the sandbox; without this recv() fails with EPERM. -->
+	<key>com.apple.security.network.server</key>
+	<true/>
 </dict>
 </plist>
