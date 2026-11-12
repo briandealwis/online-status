@@ -3,6 +3,7 @@ import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
+    @ObservedObject var logger: ConnectivityLogger
     private typealias Key = MonitorSettings.Key
 
     @AppStorage(Key.mode) private var mode = ProbeMode.ping.rawValue
@@ -18,6 +19,8 @@ struct SettingsView: View {
     @AppStorage(Key.tetheredInterval) private var tetheredInterval = 30.0
     @AppStorage(Key.pulseOnDrop) private var pulseOnDrop = true
 
+    @AppStorage(Key.logEnabled) private var logEnabled = false
+    @AppStorage(Key.logRetentionDays) private var logRetentionDays = 90
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchError: String?
 
@@ -63,6 +66,44 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            Section("Log") {
+                Toggle("Log connectivity with network and location", isOn: $logEnabled)
+                if logEnabled {
+                    Picker("Keep entries for", selection: $logRetentionDays) {
+                        Text("30 days").tag(30)
+                        Text("90 days").tag(90)
+                        Text("180 days").tag(180)
+                        Text("1 year").tag(365)
+                        Text("Forever").tag(0)
+                    }
+                    if !logger.isLocationAuthorized && logger.locationAuthorization != .notDetermined {
+                        HStack {
+                            Text("Location Services is off for Online Status, so the log has no "
+                                + "Wi-Fi names or coordinates.")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                            Button("Open Settings…") { logger.openLocationSettings() }
+                        }
+                    }
+                    HStack {
+                        Spacer()
+                        Button("Show in Finder") { logger.revealInFinder() }
+                        Button("Export…") { logger.export() }
+                    }
+                    if let error = logger.lastError {
+                        Text(error).font(.caption).foregroundStyle(.red)
+                    }
+                }
+                Text("One row per stretch of time at the same status, network and place, as CSV. "
+                    + "Wi-Fi names and coordinates need Location Services permission. "
+                    + "The log stays on this Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Section("Attention") {

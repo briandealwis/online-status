@@ -108,6 +108,39 @@ The graph keeps the data from before the change.
 You can change the thresholds for good and poor latency in Settings. You can also change the
 time before the status increases.
 
+## Connectivity log
+
+You can record a log of the connection quality with the network and the location. Use the log to
+find where the connection is frequently poor, for example on your commute. To start the log, go
+to Settings › Log and set "Log connectivity with network and location" to on.
+
+The log is a CSV file. Each row is one period with the same status, the same network and
+approximately the same place. Thus the file stays small. A row stops and a new row starts when
+one of these events occurs:
+
+* The status changes.
+* The network changes.
+* The Mac moves more than 1 km.
+* The row is 15 minutes long.
+* The Mac goes to sleep, or the application stops. The time asleep is not in the log.
+
+The columns are: `start`, `end`, `duration_s`, `status`, `network`, `latitude`, `longitude`,
+`accuracy_m`, `probes`, `failed`, `loss_pct` and `median_ms`. The times are local time.
+The `network` column shows the type of network, for example `Wi-Fi: TrainNet`,
+`Hotspot: Brian's iPhone`, `Tethered (USB)` or `Ethernet`.
+
+The Wi-Fi name and the coordinates need Location Services permission. macOS asks for this
+permission when you start the log. If you do not give permission, the log does not contain the
+Wi-Fi name or the coordinates. The application uses Location Services at an accuracy of
+approximately 100 m.
+
+The application deletes rows that are older than 90 days. You can change this period, or keep all
+rows, in Settings. To see the file, click "Show in Finder". To save a copy, click "Export…". The
+log stays on your Mac. The application does not send it to a different location.
+
+Note: Each new ad-hoc build has a different signature. Thus macOS can ask for Location Services
+permission again after you build the application again.
+
 ## How to build the application
 
 You must have macOS 14 or later and Xcode 15 or later.
@@ -144,7 +177,8 @@ The application operates in the App Sandbox. Thus it can be submitted to the Mac
 The application has the entitlement for outgoing network traffic. It also has the entitlement
 for incoming network traffic (`com.apple.security.network.server`). The sandbox identifies ping
 replies as incoming traffic, thus this entitlement is necessary. The application does not listen
-on a port. App Review can ask about this entitlement.
+on a port. App Review can ask about this entitlement. For the connectivity log, the application
+also has the location entitlement and the entitlement to write a file that the user selects.
 
 To make an archive in Xcode, do these steps:
 

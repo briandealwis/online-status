@@ -5,6 +5,11 @@ import Network
 import OnlineStatusCore
 
 /// A change of displayed status, kept for shading the graph.
+/// The kind of network currently in use.
+enum NetworkKind: Equatable {
+    case wifi, ethernet, cellular, other, none
+}
+
 struct StatusChange: Equatable {
     var date: Date
     var status: DisplayStatus
@@ -39,6 +44,13 @@ final class ConnectivityMonitor: ObservableObject {
     private var pathSignature: String?
     private var observers: [NSObjectProtocol] = []
 
+    /// The network in use, for the log.
+    private(set) var networkKind: NetworkKind = .none
+    /// Called after each probe with the sample and the resulting status.
+    var onRecord: ((Sample, DisplayStatus) -> Void)?
+    /// Called just before the Mac goes to sleep.
+    var onSleep: (() -> Void)?
+
     init() {
         UserDefaults.standard.register(defaults: MonitorSettings.defaults)
         let settings = MonitorSettings(defaults: .standard)
@@ -56,7 +68,10 @@ final class ConnectivityMonitor: ObservableObject {
         observers.append(workspace.addObserver(
             forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.stopLoop() }
+            MainActor.assumeIsolated {
+                self?.onSleep?()
+                self?.stopLoop()
+            }
         })
         observers.append(workspace.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
@@ -68,7 +83,22 @@ final class ConnectivityMonitor: ObservableObject {
             let satisfied = path.status == .satisfied
             let expensive = path.isExpensive || path.isConstrained
             let signature = "\(path.status) " + path.availableInterfaces.map(\.name).joined(separator: ",")
-            Task { @MainActor in self?.pathUpdated(satisfied: satisfied, expensive: expensive, signature: signature) }
+            let kind: NetworkKind
+            if path.status != .satisfied {
+                kind = .none
+            } else if path.usesInterfaceType(.wifi) {
+                kind = .wifi
+            } else if path.usesInterfaceType(.wiredEthernet) {
+                kind = .ethernet
+            } else if path.usesInterfaceType(.cellular) {
+                kind = .cellular
+            } else {
+                kind = .other
+            }
+            Task { @MainActor in
+                self?.networkKind = kind
+                self?.pathUpdated(satisfied: satisfied, expensive: expensive, signature: signature)
+            }
         }
         pathMonitor.start(queue: DispatchQueue(label: "OnlineStatus.path"))
 
@@ -164,6 +194,7 @@ final class ConnectivityMonitor: ObservableObject {
         let considered = history.samples(since: epoch)
         let newStatus = evaluator.evaluate(considered, now: sample.date)
         publish(newStatus, at: sample.date)
+        onRecord?(sample, newStatus)
     }
 
     private func publish(_ newStatus: DisplayStatus, at date: Date) {

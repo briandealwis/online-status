@@ -59,6 +59,10 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSLocationUsageDescription</key>
+	<string>Online Status records where your connection was good or poor, and reads the Wi-Fi network name, in its optional connectivity log. The log stays on this Mac.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Online Status records where your connection was good or poor, and reads the Wi-Fi network name, in its optional connectivity log. The log stays on this Mac.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Licensed under the Apache License 2.0</string>
 </dict>

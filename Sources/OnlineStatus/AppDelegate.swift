@@ -21,6 +21,7 @@ enum OnlineStatusMain {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let monitor = ConnectivityMonitor()
+    private let logger = ConnectivityLogger()
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
     private var hoverSummary: HoverSummary?
@@ -64,8 +65,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in self?.updateStatusItem() }
             .store(in: &cancellables)
 
+        // Connectivity log.
+        monitor.onRecord = { [weak self] sample, status in
+            guard let self else { return }
+            logger.record(sample, status: status, kind: monitor.networkKind,
+                          expensive: monitor.onExpensiveNetwork)
+        }
+        monitor.onSleep = { [weak self] in self?.logger.flush(at: Date()) }
+        monitor.$settings
+            .sink { [weak self] settings in
+                self?.logger.configure(enabled: settings.logEnabled, retentionDays: settings.logRetentionDays)
+            }
+            .store(in: &cancellables)
+        monitor.$status
+            .filter { $0 == .measuring }
+            .sink { [weak self] _ in self?.logger.flush(at: Date()) }
+            .store(in: &cancellables)
+
         monitor.start()
         updateStatusItem()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        logger.flush(at: Date())
     }
 
     private func updateStatusItem() {
@@ -150,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showSettings() {
         popover.performClose(nil)
         if settingsWindow == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(logger: logger)))
             window.title = "Online Status Settings"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false

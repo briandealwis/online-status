@@ -15,6 +15,8 @@ public struct MonitorSettings: Equatable, Sendable {
         public static let tetheredBackoff = "tetheredBackoff"
         public static let tetheredInterval = "tetheredInterval"
         public static let pulseOnDrop = "pulseOnDrop"
+        public static let logEnabled = "logEnabled"
+        public static let logRetentionDays = "logRetentionDays"
     }
 
     public static let defaultPingHost = "8.8.8.8"
@@ -33,6 +35,8 @@ public struct MonitorSettings: Equatable, Sendable {
         Key.tetheredBackoff: true,
         Key.tetheredInterval: 30.0,
         Key.pulseOnDrop: true,
+        Key.logEnabled: false,
+        Key.logRetentionDays: 90,
     ]
 
     public var mode: ProbeMode = .ping
@@ -52,6 +56,10 @@ public struct MonitorSettings: Equatable, Sendable {
     public var tetheredInterval: TimeInterval = 30
     /// Pulse the menu bar icon when the connection drops to poor or worse.
     public var pulseOnDrop = true
+    /// Write a CSV log of connectivity with network name and location.
+    public var logEnabled = false
+    /// Delete log rows older than this many days; 0 keeps them forever.
+    public var logRetentionDays = 90
 
     public init() {}
 
@@ -68,6 +76,8 @@ public struct MonitorSettings: Equatable, Sendable {
         tetheredBackoff = store.object(forKey: Key.tetheredBackoff) as? Bool ?? true
         tetheredInterval = Self.positive(store.double(forKey: Key.tetheredInterval)) ?? 30
         pulseOnDrop = store.object(forKey: Key.pulseOnDrop) as? Bool ?? true
+        logEnabled = store.object(forKey: Key.logEnabled) as? Bool ?? false
+        logRetentionDays = store.object(forKey: Key.logRetentionDays) as? Int ?? 90
         normalize()
     }
 
@@ -80,6 +90,7 @@ public struct MonitorSettings: Equatable, Sendable {
         /// Longest DNS name.
         public static let hostLength = 253
         public static let urlLength = 2048
+        public static let logRetentionDays = 3650
     }
 
     /// Keeps every value within sensible lower and upper bounds.
@@ -91,6 +102,7 @@ public struct MonitorSettings: Equatable, Sendable {
         goodLatencyMs = Self.clamp(goodLatencyMs, 1, Limit.latencyMs)
         poorLatencyMs = Self.clamp(poorLatencyMs, goodLatencyMs, Limit.latencyMs)
         recoverySeconds = Self.clamp(recoverySeconds, 0, Limit.recoverySeconds)
+        logRetentionDays = min(max(logRetentionDays, 0), Limit.logRetentionDays)
         if pingHost.count > Limit.hostLength { pingHost = Self.defaultPingHost }
         if url.count > Limit.urlLength { url = Self.defaultURL }
     }
