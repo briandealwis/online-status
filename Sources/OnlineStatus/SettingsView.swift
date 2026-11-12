@@ -66,8 +66,8 @@ struct SettingsView: View {
             }
 
             Section("Attention") {
-                Toggle("Pulse the icon when the connection drops", isOn: $pulseOnDrop)
-                Text("When the status falls to poor, no connectivity or Wi-Fi login, the icon pulses "
+                Toggle("Pulse the icon when the connection gets worse", isOn: $pulseOnDrop)
+                Text("When the status gets worse (for example green to yellow), the icon pulses "
                     + "for about 12 seconds. Click the icon to stop it. With Reduce Motion on, "
                     + "the icon shows a steady highlight instead.")
                     .font(.caption)

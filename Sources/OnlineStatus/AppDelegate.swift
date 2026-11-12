@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
-    // Attention pulse when the connection drops to poor or worse.
+    // Attention pulse when the connection gets worse.
     private static let pulsePeriod: TimeInterval = 1.2
     /// Ten whole pulses, so the animation ends at rest.
     private static let pulseDuration: TimeInterval = pulsePeriod * 10
@@ -73,8 +73,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if status != lastStatus {
             if status.isAlarmingDrop(from: lastStatus) && monitor.settings.pulseOnDrop && !popover.isShown {
                 startPulse()
-            } else if (status.level ?? .good) > .poor {
-                // Recovered (or measuring again): no need for attention any more.
+            } else if (status.level ?? .good) > (lastStatus.level ?? .good) || status == .measuring {
+                // Improved (or measuring again): no need for attention any more.
                 stopPulse()
             }
             lastStatus = status

@@ -119,7 +119,9 @@ final class StatusEvaluatorTests: XCTestCase {
         XCTAssertTrue(offline.isAlarmingDrop(from: poor))
         XCTAssertTrue(portal.isAlarmingDrop(from: good))
 
-        XCTAssertFalse(mixed.isAlarmingDrop(from: good), "mixed is not bad enough")
+        XCTAssertTrue(mixed.isAlarmingDrop(from: good))
+        XCTAssertTrue(portal.isAlarmingDrop(from: mixed))
+        XCTAssertFalse(good.isAlarmingDrop(from: mixed), "improvement")
         XCTAssertFalse(good.isAlarmingDrop(from: poor), "improvement")
         XCTAssertFalse(poor.isAlarmingDrop(from: offline), "improvement")
         XCTAssertFalse(poor.isAlarmingDrop(from: poor))
