@@ -21,6 +21,9 @@ final class ConnectivityLogger: NSObject, ObservableObject {
     private var enabled = false
     private var retentionDays = 90
     private var lastPrune: Date?
+    /// Where the row for the stretch still in progress begins in the file. That row is
+    /// rewritten after every probe, so the file is always up to date.
+    private var openRowOffset: UInt64?
 
     override init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -57,15 +60,18 @@ final class ConnectivityLogger: NSObject, ObservableObject {
     func record(_ sample: Sample, status: DisplayStatus, kind: NetworkKind, expensive: Bool) {
         guard enabled else { return }
         let context = LogContext(network: networkName(kind: kind, expensive: expensive), location: location)
-        if let segment = recorder.record(sample, status: status, context: context) {
-            append(segment)
+        if let finished = recorder.record(sample, status: status, context: context) {
+            write(finished, final: true)
+        }
+        if let current = recorder.current {
+            write(current, final: false)
         }
     }
 
     /// Ends the current stretch now (sleep, quit, network change, logging turned off).
     func flush(at date: Date) {
         if let segment = recorder.close(at: date) {
-            append(segment)
+            write(segment, final: true)
         }
     }
 
@@ -80,7 +86,7 @@ final class ConnectivityLogger: NSObject, ObservableObject {
 
     /// Lets the user save a copy of the log anywhere.
     func export() {
-        flush(at: Date())
+        // The file already includes the stretch in progress.
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "connectivity-log.csv"
         panel.allowedContentTypes = [.commaSeparatedText]
@@ -143,27 +149,45 @@ final class ConnectivityLogger: NSObject, ObservableObject {
         }
     }
 
-    private func append(_ segment: LogSegment) {
+    /// Writes a segment's row. A non-final row replaces the previous version of itself.
+    private func write(_ segment: LogSegment, final: Bool) {
         let line = ConnectivityLogCSV.row(segment, formatter: formatter) + "\n"
         do {
             try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
             if !FileManager.default.fileExists(atPath: fileURL.path) {
                 try (ConnectivityLogCSV.header + "\n").write(to: fileURL, atomically: true, encoding: .utf8)
+                openRowOffset = nil
             }
-            let handle = try FileHandle(forWritingTo: fileURL)
+            let handle = try FileHandle(forUpdating: fileURL)
             defer { try? handle.close() }
-            try handle.seekToEnd()
+            let end = try handle.seekToEnd()
+            var offset = end
+            if let open = openRowOffset, open <= end, try isLineStart(open, in: handle) {
+                offset = open
+            }
+            try handle.truncate(atOffset: offset)
+            try handle.seek(toOffset: offset)
             try handle.write(contentsOf: Data(line.utf8))
+            openRowOffset = final ? nil : offset
             lastError = nil
         } catch {
+            openRowOffset = nil
             lastError = error.localizedDescription
         }
-        pruneIfDue(force: false)
+        if final { pruneIfDue(force: false) }
+    }
+
+    /// Guards against the file having been edited since we noted the offset.
+    private func isLineStart(_ offset: UInt64, in handle: FileHandle) throws -> Bool {
+        guard offset > 0 else { return true }
+        try handle.seek(toOffset: offset - 1)
+        return try handle.read(upToCount: 1) == Data("\n".utf8)
     }
 
     /// Drop rows older than the retention period, at most every few hours.
     private func pruneIfDue(force: Bool) {
-        guard retentionDays > 0 else { return }
+        // Only between rows: rewriting the file would invalidate the open row's offset.
+        guard retentionDays > 0, openRowOffset == nil else { return }
         let now = Date()
         if !force, let lastPrune, now.timeIntervalSince(lastPrune) < 6 * 60 * 60 { return }
         lastPrune = now

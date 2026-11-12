@@ -124,6 +124,9 @@ one of these events occurs:
 * The row is 15 minutes long.
 * The Mac goes to sleep, or the application stops. The time asleep is not in the log.
 
+The application updates the last row after each probe. Thus the file always shows the current
+period.
+
 The columns are: `start`, `end`, `duration_s`, `status`, `network`, `latitude`, `longitude`,
 `accuracy_m`, `probes`, `failed`, `loss_pct` and `median_ms`. The times are local time.
 The `network` column shows the type of network, for example `Wi-Fi: TrainNet`,

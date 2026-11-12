@@ -149,13 +149,18 @@ final class ConnectivityMonitor: ObservableObject {
             || newSettings.pingHost != settings.pingHost
             || newSettings.url != settings.url
             || newSettings.httpExpectation != settings.httpExpectation
+        let scheduleChanged = newSettings.interval != settings.interval
+            || newSettings.timeout != settings.timeout
+            || newSettings.tetheredBackoff != settings.tetheredBackoff
+            || newSettings.tetheredInterval != settings.tetheredInterval
         settings = newSettings
         evaluator.configuration = newSettings.makeEvaluatorConfiguration(interval: newSettings.probeInterval(onExpensiveNetwork: onExpensiveNetwork))
         if probeChanged {
             networkChanged()
-        } else {
+        } else if scheduleChanged {
             restartLoop()
         }
+        // Other settings (thresholds, pulse, log) take effect without an extra probe.
     }
 
     private func stopLoop() {

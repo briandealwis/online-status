@@ -72,6 +72,33 @@ final class ConnectivityLogTests: XCTestCase {
         XCTAssertEqual(recorder.current?.location, home.location)
     }
 
+    func testMissingWiFiNameDoesNotSplit() {
+        var recorder = SegmentRecorder()
+        let unnamed = LogContext(network: "Wi-Fi", location: home.location)
+        let named = LogContext(network: "Wi-Fi: Fleet@Essex", location: home.location)
+        _ = recorder.record(ok(0), status: .level(.good), context: unnamed)
+        XCTAssertNil(recorder.record(ok(10), status: .level(.good), context: named), "name arrived")
+        XCTAssertEqual(recorder.current?.network, "Wi-Fi: Fleet@Essex")
+        XCTAssertNil(recorder.record(ok(20), status: .level(.good), context: unnamed), "name briefly missing")
+        XCTAssertEqual(recorder.current?.network, "Wi-Fi: Fleet@Essex")
+        XCTAssertEqual(recorder.current?.probes, 3)
+
+        // A different named network, or a different kind, still splits.
+        XCTAssertNotNil(recorder.record(ok(30), status: .level(.good),
+                                        context: LogContext(network: "Wi-Fi: Other", location: home.location)))
+        XCTAssertNotNil(recorder.record(ok(40), status: .level(.good),
+                                        context: LogContext(network: "Hotspot", location: home.location)))
+    }
+
+    func testSameNetwork() {
+        XCTAssertTrue(SegmentRecorder.sameNetwork("Ethernet", "Ethernet"))
+        XCTAssertTrue(SegmentRecorder.sameNetwork("Wi-Fi", "Wi-Fi: A"))
+        XCTAssertTrue(SegmentRecorder.sameNetwork("Wi-Fi: A", "Wi-Fi"))
+        XCTAssertFalse(SegmentRecorder.sameNetwork("Wi-Fi: A", "Wi-Fi: B"))
+        XCTAssertFalse(SegmentRecorder.sameNetwork("Wi-Fi", "Hotspot"))
+        XCTAssertFalse(SegmentRecorder.sameNetwork("Wi-Fi", "Ethernet"))
+    }
+
     func testDistance() {
         let vancouver = Coordinate(latitude: 49.2827, longitude: -123.1207, accuracy: 0)
         let seattle = Coordinate(latitude: 47.6062, longitude: -122.3321, accuracy: 0)

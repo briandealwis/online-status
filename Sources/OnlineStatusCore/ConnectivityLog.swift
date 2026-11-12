@@ -77,9 +77,17 @@ public struct SegmentRecorder: Sendable {
                 segment.location = location
                 current = segment
             }
+            // The Wi-Fi name can be missing for a moment (e.g. until Location Services permission
+            // takes effect): "Wi-Fi" and "Wi-Fi: Name" are the same network.
+            if segment.network != context.network,
+               Self.sameNetwork(segment.network, context.network),
+               Self.networkName(context.network) != nil {
+                segment.network = context.network
+                current = segment
+            }
             let moved = segment.location.flatMap { start in context.location.map { start.distance(to: $0) } } ?? 0
             if segment.status != status
-                || segment.network != context.network
+                || !Self.sameNetwork(segment.network, context.network)
                 || sample.date.timeIntervalSince(segment.start) >= maxDuration
                 || moved > maxDistance {
                 finished = close(at: sample.date)
@@ -97,6 +105,23 @@ public struct SegmentRecorder: Sendable {
         segment.end = max(segment.end, sample.date)
         current = segment
         return finished
+    }
+
+    /// True if two network descriptions can be the same network: equal, or the same kind
+    /// ("Wi-Fi", "Hotspot", ...) where at least one has no name.
+    public static func sameNetwork(_ a: String, _ b: String) -> Bool {
+        if a == b { return true }
+        return networkKind(a) == networkKind(b) && (networkName(a) == nil || networkName(b) == nil)
+    }
+
+    /// "Wi-Fi" for "Wi-Fi: TrainNet".
+    static func networkKind(_ network: String) -> Substring {
+        network.range(of: ": ").map { network[..<$0.lowerBound] } ?? network[...]
+    }
+
+    /// "TrainNet" for "Wi-Fi: TrainNet"; nil for "Wi-Fi".
+    static func networkName(_ network: String) -> Substring? {
+        network.range(of: ": ").map { network[$0.upperBound...] }
     }
 
     /// Ends the current segment at `date`. Returns it, if there was one.
