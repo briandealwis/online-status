@@ -25,6 +25,21 @@ struct SettingsView: View {
     @State private var launchError: String?
 
     var body: some View {
+        // Tabs keep each page short enough for small screens; pages scroll if needed.
+        TabView {
+            checkTab
+                .tabItem { Label("Check", systemImage: "antenna.radiowaves.left.and.right") }
+            statusTab
+                .tabItem { Label("Status", systemImage: "circle.lefthalf.filled") }
+            logTab
+                .tabItem { Label("Log", systemImage: "list.bullet.rectangle") }
+            generalTab
+                .tabItem { Label("General", systemImage: "gearshape") }
+        }
+        .frame(width: 480, height: 480)
+    }
+
+    private var checkTab: some View {
         Form {
             Section("Check") {
                 Picker("Method", selection: $mode) {
@@ -68,6 +83,60 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Personal hotspot") {
+                Toggle("Check less often when tethered", isOn: $tetheredBackoff)
+                if tetheredBackoff {
+                    Stepper(value: $tetheredInterval, in: 5...600, step: 5) {
+                        LabeledContent("Check every", value: "\(Int(max(tetheredInterval, interval))) s")
+                    }
+                }
+                Text("Applies when macOS marks the network as expensive (an iPhone or other personal "
+                    + "hotspot) or Low Data Mode is on, to save your data plan. "
+                    + "Never more often than the normal interval.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var statusTab: some View {
+        Form {
+            Section("Thresholds") {
+                Stepper(value: $goodLatencyMs, in: 10...2000, step: 10) {
+                    LabeledContent("Good below", value: "\(Int(goodLatencyMs)) ms")
+                }
+                Stepper(value: $poorLatencyMs, in: 50...10000, step: 50) {
+                    LabeledContent("Poor above", value: "\(Int(poorLatencyMs)) ms")
+                }
+                Stepper(value: $recoverySeconds, in: 0...600, step: 10) {
+                    LabeledContent("Wait before improving", value: "\(Int(recoverySeconds)) s per level")
+                }
+                Text("Good: no failures, median latency below the good threshold. "
+                    + "Mixed: up to 20% failures or median below the poor threshold. "
+                    + "Poor: anything worse. No connectivity: two failures in a row. "
+                    + "The status drops immediately but improves one level at a time.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("Attention") {
+                Toggle("Pulse the icon when the connection gets worse", isOn: $pulseOnDrop)
+                Text("When the status gets worse (for example green to yellow), the icon pulses "
+                    + "for about 12 seconds. Click the icon to stop it. With Reduce Motion on, "
+                    + "the icon shows a steady highlight instead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var logTab: some View {
+        Form {
             Section("Log") {
                 Toggle("Log connectivity with network and location", isOn: $logEnabled)
                 if logEnabled {
@@ -105,51 +174,12 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+        .formStyle(.grouped)
+    }
 
-            Section("Attention") {
-                Toggle("Pulse the icon when the connection gets worse", isOn: $pulseOnDrop)
-                Text("When the status gets worse (for example green to yellow), the icon pulses "
-                    + "for about 12 seconds. Click the icon to stop it. With Reduce Motion on, "
-                    + "the icon shows a steady highlight instead.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Personal hotspot") {
-                Toggle("Check less often when tethered", isOn: $tetheredBackoff)
-                if tetheredBackoff {
-                    Stepper(value: $tetheredInterval, in: 5...600, step: 5) {
-                        LabeledContent("Check every", value: "\(Int(max(tetheredInterval, interval))) s")
-                    }
-                }
-                Text("Applies when macOS marks the network as expensive (an iPhone or other personal "
-                    + "hotspot) or Low Data Mode is on, to save your data plan. "
-                    + "Never more often than the normal interval.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Thresholds") {
-                Stepper(value: $goodLatencyMs, in: 10...2000, step: 10) {
-                    LabeledContent("Good below", value: "\(Int(goodLatencyMs)) ms")
-                }
-                Stepper(value: $poorLatencyMs, in: 50...10000, step: 50) {
-                    LabeledContent("Poor above", value: "\(Int(poorLatencyMs)) ms")
-                }
-                Stepper(value: $recoverySeconds, in: 0...600, step: 10) {
-                    LabeledContent("Wait before improving", value: "\(Int(recoverySeconds)) s per level")
-                }
-                Text("Good: no failures, median latency below the good threshold. "
-                    + "Mixed: up to 20% failures or median below the poor threshold. "
-                    + "Poor: anything worse. No connectivity: two failures in a row. "
-                    + "The status drops immediately but improves one level at a time.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
+    private var generalTab: some View {
+        Form {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
@@ -165,8 +195,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
