@@ -14,6 +14,11 @@ A colored dot in the menu bar shows the status of the connection:
 | 🔒 | You must log in to the Wi-Fi network (captive portal) |
 | ◯ | Measurement in progress (the application started, or the network changed) |
 
+When the status decreases to poor, no connectivity or 🔒, the dot pulses for approximately
+12 seconds. This occurs also when the status decreases from poor to no connectivity. To stop the
+pulse, click the dot. You can set this function to off in Settings. If Reduce Motion is on, the
+dot shows a steady highlight and does not pulse.
+
 Put the pointer on the dot to see a summary. The summary shows the latest latency. It also shows
 the median, p90, maximum and loss for the last five minutes. The summary updates each second.
 

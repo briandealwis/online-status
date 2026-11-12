@@ -38,6 +38,14 @@ public enum DisplayStatus: Equatable, Sendable {
         }
     }
 
+    /// True when moving from `previous` to this status should draw attention: the connection
+    /// fell to poor, no connectivity or a captive portal from something better (including
+    /// poor → no connectivity). Changes from or to "measuring" don't count.
+    public func isAlarmingDrop(from previous: DisplayStatus) -> Bool {
+        guard let new = level, let old = previous.level else { return false }
+        return new <= .poor && new < old
+    }
+
     /// The level used for hysteresis; `nil` while measuring.
     public var level: ConnectivityLevel? {
         switch self {

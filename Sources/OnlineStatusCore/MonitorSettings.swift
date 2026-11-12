@@ -14,6 +14,7 @@ public struct MonitorSettings: Equatable, Sendable {
         public static let recoverySeconds = "recoverySeconds"
         public static let tetheredBackoff = "tetheredBackoff"
         public static let tetheredInterval = "tetheredInterval"
+        public static let pulseOnDrop = "pulseOnDrop"
     }
 
     public static let defaultPingHost = "8.8.8.8"
@@ -31,6 +32,7 @@ public struct MonitorSettings: Equatable, Sendable {
         Key.recoverySeconds: 30.0,
         Key.tetheredBackoff: true,
         Key.tetheredInterval: 30.0,
+        Key.pulseOnDrop: true,
     ]
 
     public var mode: ProbeMode = .ping
@@ -48,6 +50,8 @@ public struct MonitorSettings: Equatable, Sendable {
     public var tetheredBackoff = true
     /// Seconds between probes when backing off. Never shorter than `interval`.
     public var tetheredInterval: TimeInterval = 30
+    /// Pulse the menu bar icon when the connection drops to poor or worse.
+    public var pulseOnDrop = true
 
     public init() {}
 
@@ -63,6 +67,7 @@ public struct MonitorSettings: Equatable, Sendable {
         recoverySeconds = Self.positive(store.double(forKey: Key.recoverySeconds)) ?? 30
         tetheredBackoff = store.object(forKey: Key.tetheredBackoff) as? Bool ?? true
         tetheredInterval = Self.positive(store.double(forKey: Key.tetheredInterval)) ?? 30
+        pulseOnDrop = store.object(forKey: Key.pulseOnDrop) as? Bool ?? true
         normalize()
     }
 

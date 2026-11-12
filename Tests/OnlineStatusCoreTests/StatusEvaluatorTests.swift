@@ -108,6 +108,26 @@ final class StatusEvaluatorTests: XCTestCase {
         XCTAssertEqual(add(70, ms: 30), .level(.good))
     }
 
+    func testAlarmingDrops() {
+        let good = DisplayStatus.level(.good), mixed = DisplayStatus.level(.mixed)
+        let poor = DisplayStatus.level(.poor), offline = DisplayStatus.level(.offline)
+        let portal = DisplayStatus.captivePortal, measuring = DisplayStatus.measuring
+
+        XCTAssertTrue(poor.isAlarmingDrop(from: good))
+        XCTAssertTrue(poor.isAlarmingDrop(from: mixed))
+        XCTAssertTrue(offline.isAlarmingDrop(from: good))
+        XCTAssertTrue(offline.isAlarmingDrop(from: poor))
+        XCTAssertTrue(portal.isAlarmingDrop(from: good))
+
+        XCTAssertFalse(mixed.isAlarmingDrop(from: good), "mixed is not bad enough")
+        XCTAssertFalse(good.isAlarmingDrop(from: poor), "improvement")
+        XCTAssertFalse(poor.isAlarmingDrop(from: offline), "improvement")
+        XCTAssertFalse(poor.isAlarmingDrop(from: poor))
+        XCTAssertFalse(offline.isAlarmingDrop(from: portal))
+        XCTAssertFalse(poor.isAlarmingDrop(from: measuring), "no previous verdict")
+        XCTAssertFalse(measuring.isAlarmingDrop(from: good))
+    }
+
     func testResetReturnsToMeasuring() {
         add(0, ms: 30)
         add(10, ms: 30)
@@ -311,6 +331,7 @@ final class MonitorSettingsTests: XCTestCase {
         let store = UserDefaults(suiteName: "MonitorSettingsTests-\(UUID().uuidString)")!
         var settings = MonitorSettings(defaults: store)
         XCTAssertTrue(settings.tetheredBackoff)
+        XCTAssertTrue(settings.pulseOnDrop)
         XCTAssertEqual(settings.probeInterval(onExpensiveNetwork: false), 10)
         XCTAssertEqual(settings.probeInterval(onExpensiveNetwork: true), 30)
         XCTAssertEqual(settings.scheduleDescription(onExpensiveNetwork: true), "Ping 8.8.8.8, every 30 s (tethered)")
