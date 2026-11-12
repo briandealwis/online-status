@@ -24,19 +24,44 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchError: String?
 
-    var body: some View {
-        // Tabs keep each page short enough for small screens; pages scroll if needed.
-        TabView {
-            checkTab
-                .tabItem { Label("Check", systemImage: "antenna.radiowaves.left.and.right") }
-            statusTab
-                .tabItem { Label("Status", systemImage: "circle.lefthalf.filled") }
-            logTab
-                .tabItem { Label("Log", systemImage: "list.bullet.rectangle") }
-            generalTab
-                .tabItem { Label("General", systemImage: "gearshape") }
+    /// One page of the Settings window. The window shows the pages as toolbar tabs.
+    enum Page: CaseIterable {
+        case check, status, log, launch
+
+        var title: String {
+            switch self {
+            case .check: return "Check"
+            case .status: return "Status"
+            case .log: return "Log"
+            case .launch: return "Launch"
+            }
         }
-        .frame(width: 480, height: 480)
+
+        var symbol: String {
+            switch self {
+            case .check: return "antenna.radiowaves.left.and.right"
+            case .status: return "circle.lefthalf.filled"
+            case .log: return "list.bullet.rectangle"
+            case .launch: return "power"
+            }
+        }
+    }
+
+    static let pageSize = CGSize(width: 512, height: 512)
+
+    var page: Page
+
+    var body: some View {
+        Group {
+            switch page {
+            case .check: checkTab
+            case .status: statusTab
+            case .log: logTab
+            case .launch: launchTab
+            }
+        }
+        // Pages scroll if their content is ever taller than this.
+        .frame(width: Self.pageSize.width, height: Self.pageSize.height)
     }
 
     private var checkTab: some View {
@@ -178,7 +203,7 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
-    private var generalTab: some View {
+    private var launchTab: some View {
         Form {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)

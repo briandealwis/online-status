@@ -172,9 +172,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showSettings() {
         popover.performClose(nil)
         if settingsWindow == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(logger: logger)))
-            window.title = "Online Status Settings"
+            // Native Mac settings layout: one toolbar button per page.
+            let tabs = NSTabViewController()
+            tabs.tabStyle = .toolbar
+            for page in SettingsView.Page.allCases {
+                let controller = NSHostingController(rootView: SettingsView(logger: logger, page: page))
+                controller.sizingOptions = [.preferredContentSize]
+                let item = NSTabViewItem(viewController: controller)
+                item.label = page.title
+                item.image = NSImage(systemSymbolName: page.symbol, accessibilityDescription: page.title)
+                tabs.addTabViewItem(item)
+            }
+            let window = NSWindow(contentViewController: tabs)
             window.styleMask = [.titled, .closable]
+            window.toolbarStyle = .preference
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window
