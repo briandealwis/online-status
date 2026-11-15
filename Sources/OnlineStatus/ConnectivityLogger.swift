@@ -39,6 +39,12 @@ final class ConnectivityLogger: NSObject, ObservableObject {
 
     var isLocationAuthorized: Bool { Self.isAuthorized(locationAuthorization) }
 
+    /// Screenshot mode: show Settings as if Location Services permission was given.
+    func pretendLocationAuthorized() {
+        locationManager.delegate = nil
+        locationAuthorization = .authorizedAlways
+    }
+
     /// Apply the current settings.
     func configure(enabled: Bool, retentionDays: Int) {
         let retentionChanged = retentionDays != self.retentionDays

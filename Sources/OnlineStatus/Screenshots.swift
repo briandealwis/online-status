@@ -24,14 +24,17 @@ enum Screenshots {
         UserDefaults.standard.set(true, forKey: MonitorSettings.Key.logEnabled)
 
         let app = NSApplication.shared
-        app.setActivationPolicy(.prohibited)
+        // Active, so controls draw in their active colours (blue switches, not grey).
+        app.setActivationPolicy(.accessory)
         app.finishLaunching()
+        app.activate(ignoringOtherApps: true)
 
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let monitor = ConnectivityMonitor()
             monitor.loadDemo(demoSamples(), frozenNow: frozenNow)
             let logger = ConnectivityLogger()
+            logger.pretendLocationAuthorized()
 
             try render(
                 panel(GraphView(monitor: monitor)),
@@ -82,6 +85,11 @@ enum Screenshots {
             .padding(12)
     }
 
+    /// Borderless windows can't normally become key.
+    private final class KeyableWindow: NSWindow {
+        override var canBecomeKey: Bool { true }
+    }
+
     enum RenderError: Error {
         case noImage(String)
     }
@@ -93,11 +101,15 @@ enum Screenshots {
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
 
-        let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        let window = KeyableWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: .aqua)
         window.isOpaque = false
         window.backgroundColor = .clear
         window.contentView = hosting
+        // Far off-screen, but ordered in and key so controls draw as in an active window.
+        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
+        window.orderFrontRegardless()
+        window.makeKey()
         hosting.layoutSubtreeIfNeeded()
         // Let SwiftUI and Swift Charts finish laying out and drawing.
         RunLoop.main.run(until: Date().addingTimeInterval(1.0))
