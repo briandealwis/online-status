@@ -15,6 +15,9 @@ public struct MonitorSettings: Equatable, Sendable {
         public static let tetheredBackoff = "tetheredBackoff"
         public static let tetheredInterval = "tetheredInterval"
         public static let pulseOnDrop = "pulseOnDrop"
+        public static let fastAfterChange = "fastAfterChange"
+        public static let fastInterval = "fastInterval"
+        public static let fastDuration = "fastDuration"
         public static let logEnabled = "logEnabled"
         public static let logRetentionDays = "logRetentionDays"
     }
@@ -35,6 +38,9 @@ public struct MonitorSettings: Equatable, Sendable {
         Key.tetheredBackoff: true,
         Key.tetheredInterval: 30.0,
         Key.pulseOnDrop: true,
+        Key.fastAfterChange: true,
+        Key.fastInterval: 2.0,
+        Key.fastDuration: 60.0,
         Key.logEnabled: false,
         Key.logRetentionDays: 90,
     ]
@@ -56,6 +62,12 @@ public struct MonitorSettings: Equatable, Sendable {
     public var tetheredInterval: TimeInterval = 30
     /// Pulse the menu bar icon when the connection drops to poor or worse.
     public var pulseOnDrop = true
+    /// Probe more often for a while after the status changes, to measure how long drops last.
+    public var fastAfterChange = true
+    /// Seconds between probes while checking faster. Never slower than the normal interval.
+    public var fastInterval: TimeInterval = 2
+    /// How long to keep checking faster after a change, in seconds.
+    public var fastDuration: TimeInterval = 60
     /// Write a CSV log of connectivity with network name and location.
     public var logEnabled = false
     /// Delete log rows older than this many days; 0 keeps them forever.
@@ -76,6 +88,9 @@ public struct MonitorSettings: Equatable, Sendable {
         tetheredBackoff = store.object(forKey: Key.tetheredBackoff) as? Bool ?? true
         tetheredInterval = Self.positive(store.double(forKey: Key.tetheredInterval)) ?? 30
         pulseOnDrop = store.object(forKey: Key.pulseOnDrop) as? Bool ?? true
+        fastAfterChange = store.object(forKey: Key.fastAfterChange) as? Bool ?? true
+        fastInterval = Self.positive(store.double(forKey: Key.fastInterval)) ?? 2
+        fastDuration = Self.positive(store.double(forKey: Key.fastDuration)) ?? 60
         logEnabled = store.object(forKey: Key.logEnabled) as? Bool ?? false
         logRetentionDays = store.object(forKey: Key.logRetentionDays) as? Int ?? 90
         normalize()
@@ -91,6 +106,7 @@ public struct MonitorSettings: Equatable, Sendable {
         public static let hostLength = 253
         public static let urlLength = 2048
         public static let logRetentionDays = 3650
+        public static let fastDuration: TimeInterval = 600
     }
 
     /// Keeps every value within sensible lower and upper bounds.
@@ -102,6 +118,8 @@ public struct MonitorSettings: Equatable, Sendable {
         goodLatencyMs = Self.clamp(goodLatencyMs, 1, Limit.latencyMs)
         poorLatencyMs = Self.clamp(poorLatencyMs, goodLatencyMs, Limit.latencyMs)
         recoverySeconds = Self.clamp(recoverySeconds, 0, Limit.recoverySeconds)
+        fastInterval = Self.clamp(fastInterval, 1, interval)
+        fastDuration = Self.clamp(fastDuration, 10, Limit.fastDuration)
         logRetentionDays = min(max(logRetentionDays, 0), Limit.logRetentionDays)
         if pingHost.count > Limit.hostLength { pingHost = Self.defaultPingHost }
         if url.count > Limit.urlLength { url = Self.defaultURL }
@@ -161,6 +179,12 @@ public struct MonitorSettings: Equatable, Sendable {
     /// Seconds between probes, given whether the current network is expensive or constrained.
     public func probeInterval(onExpensiveNetwork expensive: Bool) -> TimeInterval {
         expensive && tetheredBackoff ? tetheredInterval : interval
+    }
+
+    /// Seconds between probes while checking faster after a change, or nil if that's off.
+    /// Never slower than `base`.
+    public func fastProbeInterval(base: TimeInterval) -> TimeInterval? {
+        fastAfterChange ? min(fastInterval, base) : nil
     }
 
     /// E.g. "Ping 8.8.8.8, every 30 s (tethered)".

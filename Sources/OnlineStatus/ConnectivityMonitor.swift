@@ -31,7 +31,27 @@ final class ConnectivityMonitor: ObservableObject {
     /// Seconds between probes right now.
     var currentInterval: TimeInterval { settings.probeInterval(onExpensiveNetwork: onExpensiveNetwork) }
 
-    var scheduleDescription: String { settings.scheduleDescription(onExpensiveNetwork: onExpensiveNetwork) }
+    var scheduleDescription: String {
+        let base = settings.scheduleDescription(onExpensiveNetwork: onExpensiveNetwork)
+        guard isCheckingFaster, let fast = settings.fastProbeInterval(base: currentInterval) else { return base }
+        return base + " (now every \(Int(fast)) s after a change)"
+    }
+
+    /// After the status changes, probe faster until this time.
+    private var fastUntil: Date?
+
+    private var isCheckingFaster: Bool {
+        guard let fastUntil else { return false }
+        return now() < fastUntil
+    }
+
+    /// Seconds to wait before the next probe: faster for a while after a change.
+    private var nextProbeInterval: TimeInterval {
+        if isCheckingFaster, let fast = settings.fastProbeInterval(base: currentInterval) {
+            return fast
+        }
+        return currentInterval
+    }
 
     private var history = SampleHistory(retention: 60 * 60)
     private var evaluator: StatusEvaluator
@@ -189,7 +209,6 @@ final class ConnectivityMonitor: ObservableObject {
     private func restartLoop() {
         stopLoop()
         let settings = self.settings
-        let interval = currentInterval
         let probe = makeProbe(for: settings)
         loopTask = Task { @MainActor [weak self] in
             let clock = ContinuousClock()
@@ -203,7 +222,7 @@ final class ConnectivityMonitor: ObservableObject {
                 }
                 guard !Task.isCancelled, let self else { return }
                 self.record(sample)
-                let wait = Duration.milliseconds(Int64(interval * 1000)) - (clock.now - began)
+                let wait = Duration.milliseconds(Int64(self.nextProbeInterval * 1000)) - (clock.now - began)
                 if wait > .zero {
                     try? await Task.sleep(for: wait)
                 }
@@ -222,6 +241,10 @@ final class ConnectivityMonitor: ObservableObject {
 
     private func publish(_ newStatus: DisplayStatus, at date: Date) {
         guard newStatus != status else { return }
+        // A real change (not to or from "measuring"): check faster to see how long it lasts.
+        if newStatus != .measuring && status != .measuring {
+            fastUntil = date.addingTimeInterval(settings.fastDuration)
+        }
         status = newStatus
         statusChanges.append(StatusChange(date: date, status: newStatus))
         // Keep the newest change that is older than the retention period, for shading.

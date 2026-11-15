@@ -55,6 +55,11 @@ The application does one probe at an interval. The default interval is 10 second
 timeout is 3 seconds. You can change these values in Settings. A timeout is a failure. Only one
 probe operates at a time.
 
+When the status changes, the application does probes more frequently for a short time. Thus
+you can see how long a drop or a recovery continues. By default, the application does a probe
+each 2 seconds for 1 minute after each change. Then it uses the usual interval again. You can
+change these values, or stop this function, on the Probe page in Settings.
+
 On a personal hotspot, the application does fewer probes. This decreases the quantity of data
 that it uses. This occurs when one of these conditions is true:
 

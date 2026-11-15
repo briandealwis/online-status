@@ -19,6 +19,9 @@ struct SettingsView: View {
     @AppStorage(Key.tetheredInterval) private var tetheredInterval = 30.0
     @AppStorage(Key.pulseOnDrop) private var pulseOnDrop = true
 
+    @AppStorage(Key.fastAfterChange) private var fastAfterChange = true
+    @AppStorage(Key.fastInterval) private var fastInterval = 2.0
+    @AppStorage(Key.fastDuration) private var fastDuration = 60.0
     @AppStorage(Key.logEnabled) private var logEnabled = false
     @AppStorage(Key.logRetentionDays) private var logRetentionDays = 90
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -105,6 +108,27 @@ struct SettingsView: View {
                     Text("The timeout is capped at the check interval.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+                Toggle("Check more often after a change", isOn: $fastAfterChange)
+                    .help("When the status changes, probe faster for a while to measure how long "
+                        + "a drop or recovery lasts.")
+                if fastAfterChange {
+                    HStack {
+                        Picker("Every", selection: $fastInterval) {
+                            Text("1 s").tag(1.0)
+                            Text("2 s").tag(2.0)
+                            Text("5 s").tag(5.0)
+                        }
+                        .fixedSize()
+                        Picker("for", selection: $fastDuration) {
+                            Text("30 s").tag(30.0)
+                            Text("1 min").tag(60.0)
+                            Text("2 min").tag(120.0)
+                            Text("5 min").tag(300.0)
+                        }
+                        .fixedSize()
+                        Spacer()
+                    }
                 }
             }
 

@@ -329,6 +329,26 @@ final class MonitorSettingsTests: XCTestCase {
         XCTAssertEqual(problem("not a url"), .invalid)
     }
 
+    func testFastAfterChange() {
+        let store = UserDefaults(suiteName: "MonitorSettingsTests-\(UUID().uuidString)")!
+        var settings = MonitorSettings(defaults: store)
+        XCTAssertTrue(settings.fastAfterChange)
+        XCTAssertEqual(settings.fastProbeInterval(base: 10), 2)
+        XCTAssertEqual(settings.fastProbeInterval(base: 30), 2, "tethered base")
+        XCTAssertEqual(settings.fastDuration, 60)
+
+        store.set(5.0, forKey: MonitorSettings.Key.interval)
+        store.set(30.0, forKey: MonitorSettings.Key.fastInterval)
+        store.set(1e6, forKey: MonitorSettings.Key.fastDuration)
+        settings = MonitorSettings(defaults: store)
+        XCTAssertEqual(settings.fastInterval, 5, "never slower than the normal interval")
+        XCTAssertEqual(settings.fastDuration, MonitorSettings.Limit.fastDuration)
+
+        store.set(false, forKey: MonitorSettings.Key.fastAfterChange)
+        settings = MonitorSettings(defaults: store)
+        XCTAssertNil(settings.fastProbeInterval(base: 10))
+    }
+
     func testTetheredBackoff() {
         let store = UserDefaults(suiteName: "MonitorSettingsTests-\(UUID().uuidString)")!
         var settings = MonitorSettings(defaults: store)
