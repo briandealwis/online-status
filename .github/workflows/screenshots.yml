@@ -9,6 +9,7 @@ on:
       - "Sources/**"
       - "Package.swift"
       - ".github/workflows/screenshots.yml"
+      - "build.sh"
   workflow_dispatch:
 
 permissions:
@@ -23,13 +24,11 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: swift build -c release
       - name: Render screenshots
         run: |
           # Start clean so images of renamed or removed views don't linger.
           rm -f docs/screenshots/*.png
-          "$(swift build -c release --show-bin-path)/OnlineStatus" --screenshots docs/screenshots
+          ./build.sh screenshots
       - uses: actions/upload-artifact@v4
         with:
           name: screenshots

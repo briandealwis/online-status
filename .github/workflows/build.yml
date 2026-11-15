@@ -10,17 +10,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test core logic
-        run: swift test
-      - name: Build app bundle
-        run: scripts/build-app.sh
+        run: ./build.sh test
+      - name: Build and package app
+        run: ./build.sh dist
       - name: Check signature and entitlements
         run: codesign --display --entitlements - build/OnlineStatus.app
-      - name: Zip app
-        run: ditto -c -k --keepParent build/OnlineStatus.app build/OnlineStatus.zip
       - uses: actions/upload-artifact@v4
         with:
           name: OnlineStatus
-          path: build/OnlineStatus.zip
+          path: build/OnlineStatus-*.zip
 
   xcode:
     runs-on: macos-15

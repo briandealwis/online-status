@@ -47,7 +47,7 @@ menu has these items: Probe Now, Settings… and Quit Online Status.
 
 A GitHub Actions workflow makes these screenshots from demo data after each change to the
 source code. To make them on your Mac, run
-`swift run OnlineStatus --screenshots docs/screenshots`.
+`./build.sh screenshots`.
 
 ## How the application does a check
 
@@ -167,30 +167,31 @@ permission again after you build the application again.
 
 You must have macOS 14 or later and Xcode 15 or later.
 
-To build and start the application, do these steps:
+Use the `build.sh` script:
 
-1. Run this command. It builds `build/OnlineStatus.app` and signs it with an ad-hoc signature.
+```sh
+./build.sh              # Release build → build/OnlineStatus.app
+./build.sh run          # Debug build and start
+./build.sh test         # Run the unit tests
+./build.sh screenshots  # Make docs/screenshots/*.png again
+./build.sh install      # Release build, copied to ~/Applications
+./build.sh dist         # Release build, packaged as build/OnlineStatus-<version>.zip
+./build.sh clean        # Remove the build output
+./build.sh help         # Show all commands and options
+```
 
-   ```sh
-   scripts/build-app.sh
-   ```
-
-2. Run this command to start the application:
-
-   ```sh
-   open build/OnlineStatus.app
-   ```
+The script signs the application with an ad-hoc signature. To use your Apple Developer
+identity, set `CODE_SIGN_IDENTITY`. To build for Apple silicon and Intel, set `UNIVERSAL=1`.
 
 To keep the application, do these steps:
 
-1. Copy `build/OnlineStatus.app` to `/Applications`.
+1. Run `./build.sh install`.
 2. In Settings, set "Launch at login" to on.
 
 The application has only an ad-hoc signature. Thus macOS can stop it the first time that you
 start it. If this occurs, right-click the application and select Open.
 
-To run the unit tests, use `swift test`. The tests examine the status logic, the statistics and
-the ICMP packets.
+The unit tests examine the status logic, the statistics, the ICMP packets and the log.
 
 ### Mac App Store
 
