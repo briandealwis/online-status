@@ -34,7 +34,7 @@ enum Screenshots {
             let logger = ConnectivityLogger()
 
             try render(
-                panel(GraphView(monitor: monitor, openSettings: {}, quit: {})),
+                panel(GraphView(monitor: monitor)),
                 to: directory.appendingPathComponent("graph.png")
             )
             try render(

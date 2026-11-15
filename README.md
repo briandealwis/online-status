@@ -31,7 +31,10 @@ Click the dot to see a graph of the last five minutes. The graph has these parts
 * The dashed lines show the thresholds for good and poor.
 * A red vertical line shows a probe that failed.
 
-Below the graph are the Probe Now, Settings and Quit buttons.
+Below the graph is the Probe Now button.
+
+To see the menu, right-click the dot. You can also Control-click or Command-click the dot. The
+menu has these items: Probe Now, Settings… and Quit Online Status.
 
 <img src="docs/screenshots/graph.png" width="464" alt="Graph panel with five minutes of demo data: good latency, a slowdown, two failed probes, then recovery. The background color shows the status at each time. Below the graph are the median, p90, min/max, loss and probe count">
 

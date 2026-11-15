@@ -5,8 +5,6 @@ import SwiftUI
 /// The popover shown when the menu bar icon is clicked: last five minutes of probes.
 struct GraphView: View {
     @ObservedObject var monitor: ConnectivityMonitor
-    var openSettings: () -> Void
-    var quit: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
@@ -176,8 +174,6 @@ struct GraphView: View {
                 .truncationMode(.middle)
             Spacer()
             Button("Probe Now") { monitor.probeNow() }
-            Button("Settings…", action: openSettings)
-            Button("Quit", action: quit)
         }
         .controlSize(.small)
     }

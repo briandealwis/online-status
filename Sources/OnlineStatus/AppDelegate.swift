@@ -45,7 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.target = self
-        item.button?.action = #selector(togglePopover(_:))
+        item.button?.action = #selector(statusItemClicked(_:))
+        // Right-click opens the menu, so the button must report right clicks too.
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         item.button?.imagePosition = .imageOnly
         statusItem = item
         if let button = item.button {
@@ -57,11 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.animates = false
         popover.contentViewController = NSHostingController(
-            rootView: GraphView(
-                monitor: monitor,
-                openSettings: { [weak self] in self?.showSettings() },
-                quit: { NSApp.terminate(nil) }
-            )
+            rootView: GraphView(monitor: monitor)
         )
 
         monitor.$status
@@ -162,10 +160,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         drawIcon(pulse: 0)
     }
 
-    @objc private func togglePopover(_ sender: Any?) {
+    /// Click: graph. Right-click, Control-click or Command-click: menu.
+    @objc private func statusItemClicked(_ sender: Any?) {
         hoverSummary?.hide()
         // Clicking the icon acknowledges the alert.
         stopPulse()
+        let event = NSApp.currentEvent
+        let wantsMenu = event?.type == .rightMouseUp
+            || event?.modifierFlags.contains(.command) == true
+            || event?.modifierFlags.contains(.control) == true
+        if wantsMenu {
+            showMenu()
+        } else {
+            togglePopover(sender)
+        }
+    }
+
+    private func showMenu() {
+        guard let item = statusItem else { return }
+        popover.performClose(nil)
+        let menu = NSMenu()
+        let probe = NSMenuItem(title: "Probe Now", action: #selector(probeNow), keyEquivalent: "")
+        probe.target = self
+        menu.addItem(probe)
+        menu.addItem(.separator())
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Quit Online Status",
+                                action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        // Attaching the menu only for this click shows it in the usual place, with the
+        // icon highlighted, while a plain click still opens the graph.
+        item.menu = menu
+        item.button?.performClick(nil)
+        item.menu = nil
+    }
+
+    @objc private func probeNow() {
+        monitor.probeNow()
+    }
+
+    @objc private func openSettings() {
+        showSettings()
+    }
+
+    private func togglePopover(_ sender: Any?) {
         if popover.isShown {
             popover.performClose(sender)
         } else if let button = statusItem?.button {
