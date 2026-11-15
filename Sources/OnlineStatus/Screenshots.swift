@@ -85,9 +85,14 @@ enum Screenshots {
             .padding(12)
     }
 
-    /// Borderless windows can't normally become key.
+    /// Borderless windows can't normally become key. Reporting key and main as well makes
+    /// AppKit controls (switches) draw in their active colours on a runner where the app
+    /// can't be activated.
     private final class KeyableWindow: NSWindow {
         override var canBecomeKey: Bool { true }
+        override var canBecomeMain: Bool { true }
+        override var isKeyWindow: Bool { true }
+        override var isMainWindow: Bool { true }
     }
 
     enum RenderError: Error {
