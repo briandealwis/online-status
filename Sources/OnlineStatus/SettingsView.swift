@@ -113,21 +113,25 @@ struct SettingsView: View {
                     .help("When the status changes, probe faster for a while to measure how long "
                         + "a drop or recovery lasts.")
                 if fastAfterChange {
-                    HStack {
-                        Picker("Every", selection: $fastInterval) {
-                            Text("1 s").tag(1.0)
-                            Text("2 s").tag(2.0)
-                            Text("5 s").tag(5.0)
+                    LabeledContent("Every") {
+                        HStack(spacing: 6) {
+                            Picker("Every", selection: $fastInterval) {
+                                Text("1 s").tag(1.0)
+                                Text("2 s").tag(2.0)
+                                Text("5 s").tag(5.0)
+                            }
+                            .labelsHidden()
+                            .fixedSize()
+                            Text("for")
+                            Picker("For", selection: $fastDuration) {
+                                Text("30 s").tag(30.0)
+                                Text("1 min").tag(60.0)
+                                Text("2 min").tag(120.0)
+                                Text("5 min").tag(300.0)
+                            }
+                            .labelsHidden()
+                            .fixedSize()
                         }
-                        .fixedSize()
-                        Picker("for", selection: $fastDuration) {
-                            Text("30 s").tag(30.0)
-                            Text("1 min").tag(60.0)
-                            Text("2 min").tag(120.0)
-                            Text("5 min").tag(300.0)
-                        }
-                        .fixedSize()
-                        Spacer()
                     }
                 }
             }

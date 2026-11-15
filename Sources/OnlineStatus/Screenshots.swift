@@ -96,7 +96,8 @@ enum Screenshots {
 
     /// Draws `view` at 2x into a PNG.
     private static func render(_ view: some View, to url: URL) throws {
-        let hosting = NSHostingView(rootView: view)
+        // Draw controls as in the active window, even if the runner won't activate the app.
+        let hosting = NSHostingView(rootView: view.environment(\.controlActiveState, .key))
         hosting.appearance = NSAppearance(named: .aqua)
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
