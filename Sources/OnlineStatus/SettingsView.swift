@@ -26,11 +26,11 @@ struct SettingsView: View {
 
     /// One page of the Settings window. The window shows the pages as toolbar tabs.
     enum Page: CaseIterable {
-        case check, status, log, launch
+        case probe, status, log, launch
 
         var title: String {
             switch self {
-            case .check: return "Check"
+            case .probe: return "Probe"
             case .status: return "Status"
             case .log: return "Log"
             case .launch: return "Launch"
@@ -39,7 +39,7 @@ struct SettingsView: View {
 
         var symbol: String {
             switch self {
-            case .check: return "antenna.radiowaves.left.and.right"
+            case .probe: return "antenna.radiowaves.left.and.right"
             case .status: return "circle.lefthalf.filled"
             case .log: return "list.bullet.rectangle"
             case .launch: return "power"
@@ -54,7 +54,7 @@ struct SettingsView: View {
     var body: some View {
         Group {
             switch page {
-            case .check: checkTab
+            case .probe: probeTab
             case .status: statusTab
             case .log: logTab
             case .launch: launchTab
@@ -64,9 +64,9 @@ struct SettingsView: View {
         .frame(width: Self.pageSize.width, height: Self.pageSize.height)
     }
 
-    private var checkTab: some View {
+    private var probeTab: some View {
         Form {
-            Section("Check") {
+            Section("Method") {
                 Picker("Method", selection: $mode) {
                     ForEach(ProbeMode.allCases, id: \.rawValue) { mode in
                         Text(mode.name).tag(mode.rawValue)

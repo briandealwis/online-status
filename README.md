@@ -42,7 +42,7 @@ menu has these items: Probe Now, Settings… and Quit Online Status.
 
 | | |
 |---|---|
-| <img src="docs/screenshots/settings-check.png" width="256" alt="Settings, Check page: method, host, interval, timeout and personal hotspot options"> | <img src="docs/screenshots/settings-status.png" width="256" alt="Settings, Status page: latency thresholds, recovery time and the pulse option"> |
+| <img src="docs/screenshots/settings-probe.png" width="256" alt="Settings, Probe page: method, host, interval, timeout and personal hotspot options"> | <img src="docs/screenshots/settings-status.png" width="256" alt="Settings, Status page: latency thresholds, recovery time and the pulse option"> |
 | <img src="docs/screenshots/settings-log.png" width="256" alt="Settings, Log page: log option, retention period, Show in Finder and Export"> | <img src="docs/screenshots/settings-launch.png" width="256" alt="Settings, Launch page: launch at login and Restore Defaults"> |
 
 A GitHub Actions workflow makes these screenshots from demo data after each change to the
