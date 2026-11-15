@@ -7,6 +7,11 @@ import SwiftUI
 enum OnlineStatusMain {
     @MainActor
     static func main() {
+        let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--screenshots") {
+            let directory = index + 1 < arguments.count ? arguments[index + 1] : "docs/screenshots"
+            exit(Screenshots.run(into: URL(fileURLWithPath: directory, isDirectory: true)))
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate

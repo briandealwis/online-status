@@ -9,8 +9,8 @@ struct GraphView: View {
     var quit: () -> Void
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            content(now: context.date)
+        TimelineView(.periodic(from: .now, by: 1)) { _ in
+            content(now: monitor.now())
         }
         .padding(14)
         .frame(width: 440)

@@ -1,0 +1,47 @@
+name: Screenshots
+
+# Regenerates docs/screenshots/*.png with demo data after the app's UI code changes,
+# and commits them to main if any image changed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Package.swift"
+      - ".github/workflows/screenshots.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -c release
+      - name: Render screenshots
+        run: |
+          "$(swift build -c release --show-bin-path)/OnlineStatus" --screenshots docs/screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/screenshots
+      - name: Commit changed screenshots
+        run: |
+          git add docs/screenshots
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update screenshots [skip ci]"
+          # main may have moved while this ran.
+          git pull --rebase origin main
+          git push origin HEAD:main

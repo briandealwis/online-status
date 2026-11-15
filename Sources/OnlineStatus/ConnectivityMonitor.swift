@@ -44,6 +44,24 @@ final class ConnectivityMonitor: ObservableObject {
     private var pathSignature: String?
     private var observers: [NSObjectProtocol] = []
 
+    /// The current time. Screenshot mode freezes it so generated images don't change between runs.
+    private(set) var now: () -> Date = { Date() }
+
+    /// Screenshot mode: show `samples` (oldest first) as if they had just been measured,
+    /// with the clock stopped at `frozenNow`. No probes run.
+    func loadDemo(_ samples: [Sample], frozenNow: Date) {
+        stopLoop()
+        now = { frozenNow }
+        history.removeAll()
+        evaluator.reset()
+        status = .measuring
+        let start = samples.first?.date ?? frozenNow
+        statusChanges = [StatusChange(date: start.addingTimeInterval(-10), status: .measuring)]
+        for sample in samples {
+            record(sample)
+        }
+    }
+
     /// The network in use, for the log.
     private(set) var networkKind: NetworkKind = .none
     /// Called after each probe with the sample and the resulting status.
@@ -112,7 +130,7 @@ final class ConnectivityMonitor: ObservableObject {
 
     /// Statistics over the period shown in the graph.
     var recentSummary: SampleSummary {
-        SampleSummary(history.samples(since: Date().addingTimeInterval(-Self.graphSpan)))
+        SampleSummary(history.samples(since: now().addingTimeInterval(-Self.graphSpan)))
     }
 
     // MARK: - Private

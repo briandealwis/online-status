@@ -22,7 +22,7 @@ dot shows a steady highlight and does not pulse.
 Put the pointer on the dot to see a summary. The summary shows the latest latency. It also shows
 the median, p90, maximum and loss for the last five minutes. The summary updates each second.
 
-<img src="docs/screenshots/hover.png" width="405" alt="Summary panel below the menu bar dot. It shows: Good, 29 ms; last 5 min median 26 ms, p90 31 ms, max 107 ms; loss 0% (0 of 26 probes failed); fetch generate_204 every 10 s">
+<img src="docs/screenshots/hover.png" width="364" alt="Summary panel. It shows the status, the latest latency, the median, p90 and maximum latency and the loss for the last 5 minutes, and the probe method and interval">
 
 Click the dot to see a graph of the last five minutes. The graph has these parts:
 
@@ -33,7 +33,18 @@ Click the dot to see a graph of the last five minutes. The graph has these parts
 
 Below the graph are the Probe Now, Settings and Quit buttons.
 
-<img src="docs/screenshots/summary-window.png" width="487" alt="Graph panel with a green status dot, Good, 27 ms. The latency decreases from 137 ms to approximately 25 ms on a log scale. Dashed lines show the thresholds and the background is green. Median 27 ms, p90 32 ms, min/max 23/137 ms, loss 0%, 15 probes">
+<img src="docs/screenshots/graph.png" width="464" alt="Graph panel with five minutes of demo data: good latency, a slowdown, two failed probes, then recovery. The background color shows the status at each time. Below the graph are the median, p90, min/max, loss and probe count">
+
+### Settings
+
+| | |
+|---|---|
+| <img src="docs/screenshots/settings-check.png" width="256" alt="Settings, Check page: method, host, interval, timeout and personal hotspot options"> | <img src="docs/screenshots/settings-status.png" width="256" alt="Settings, Status page: latency thresholds, recovery time and the pulse option"> |
+| <img src="docs/screenshots/settings-log.png" width="256" alt="Settings, Log page: log option, retention period, Show in Finder and Export"> | <img src="docs/screenshots/settings-launch.png" width="256" alt="Settings, Launch page: launch at login and Restore Defaults"> |
+
+A GitHub Actions workflow makes these screenshots from demo data after each change to the
+source code. To make them on your Mac, run
+`swift run OnlineStatus --screenshots docs/screenshots`.
 
 ## How the application does a check
 
