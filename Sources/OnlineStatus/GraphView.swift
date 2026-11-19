@@ -54,6 +54,8 @@ struct GraphView: View {
     private struct Point: Identifiable {
         var date: Date
         var ms: Double
+        /// Consecutive successful probes share a run; the line is only drawn within a run.
+        var run: Int
         var id: Date { date }
     }
 
@@ -87,8 +89,11 @@ struct GraphView: View {
     }
 
     private func chart(samples: [Sample], start: Date, now: Date) -> some View {
-        let points = samples.compactMap { sample in
-            sample.rtt.map { Point(date: sample.date, ms: $0 * 1000) }
+        // A failed probe breaks the line: nothing was measured until the next success.
+        let points = SuccessRun.split(samples).flatMap { run in
+            run.samples.compactMap { sample in
+                sample.rtt.map { Point(date: sample.date, ms: $0 * 1000, run: run.index) }
+            }
         }
         let failures = samples.filter { !$0.isSuccess }.map(\.date)
         let good = monitor.settings.goodLatencyMs
@@ -112,7 +117,8 @@ struct GraphView: View {
                     .lineStyle(StrokeStyle(lineWidth: 2))
             }
             ForEach(points) { point in
-                LineMark(x: .value("Time", point.date), y: .value("Latency (ms)", point.ms))
+                LineMark(x: .value("Time", point.date), y: .value("Latency (ms)", point.ms),
+                         series: .value("Run", point.run))
                     .foregroundStyle(.primary)
                     .interpolationMethod(.monotone)
                 PointMark(x: .value("Time", point.date), y: .value("Latency (ms)", point.ms))

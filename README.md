@@ -26,7 +26,7 @@ the median, p90, maximum and loss for the last five minutes. The summary updates
 
 Click the dot to see a graph of the last five minutes. The graph has these parts:
 
-* The line shows the latency of each probe.
+* The line shows the latency of each probe. A probe that failed makes a gap in the line.
 * The color of the background shows the status.
 * The dashed lines show the thresholds for good and poor.
 * A red vertical line shows a probe that failed.

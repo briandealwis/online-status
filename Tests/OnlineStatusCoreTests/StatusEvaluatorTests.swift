@@ -179,6 +179,21 @@ final class StatisticsTests: XCTestCase {
         XCTAssertNil(SampleSummary.percentile(0.5, ofSorted: []))
     }
 
+    func testSuccessRunsBreakAtFailures() {
+        let t0 = Date(timeIntervalSince1970: 0)
+        func ok(_ i: Double) -> Sample { .success(at: t0.addingTimeInterval(i), rtt: 0.02) }
+        func fail(_ i: Double) -> Sample { .failure(at: t0.addingTimeInterval(i), .timeout) }
+
+        let runs = SuccessRun.split([fail(0), ok(1), ok(2), fail(3), fail(4), ok(5), fail(6), ok(7), ok(8)])
+        XCTAssertEqual(runs.map(\.index), [0, 1, 2])
+        XCTAssertEqual(runs.map { $0.samples.map(\.date) },
+                       [[1, 2], [5], [7, 8]].map { $0.map { t0.addingTimeInterval($0) } })
+
+        XCTAssertEqual(SuccessRun.split([fail(0), fail(1)]), [], "all failures: no line at all")
+        XCTAssertEqual(SuccessRun.split([Sample]()), [])
+        XCTAssertEqual(SuccessRun.split([ok(0), ok(1)]).count, 1)
+    }
+
     func testHistoryRetention() {
         var history = SampleHistory(retention: 60)
         let t0 = Date(timeIntervalSince1970: 0)

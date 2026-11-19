@@ -40,6 +40,31 @@ public struct SampleSummary: Equatable, Sendable {
     }
 }
 
+/// A stretch of consecutive successful samples. A failed probe ends a run, so a graph can
+/// leave a gap instead of drawing a line through a time when nothing was measured.
+public struct SuccessRun: Equatable, Sendable {
+    public var index: Int
+    public var samples: [Sample]
+
+    /// Splits `samples` (oldest first) into runs of consecutive successes.
+    public static func split(_ samples: some Sequence<Sample>) -> [SuccessRun] {
+        var runs: [SuccessRun] = []
+        var current: [Sample] = []
+        for sample in samples {
+            if sample.isSuccess {
+                current.append(sample)
+            } else if !current.isEmpty {
+                runs.append(SuccessRun(index: runs.count, samples: current))
+                current = []
+            }
+        }
+        if !current.isEmpty {
+            runs.append(SuccessRun(index: runs.count, samples: current))
+        }
+        return runs
+    }
+}
+
 /// Keeps samples for a limited time span.
 public struct SampleHistory: Sendable {
     public private(set) var samples: [Sample] = []
