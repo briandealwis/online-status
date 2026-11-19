@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import Combine
 import Foundation
 import Network
@@ -32,7 +34,12 @@ final class ConnectivityMonitor: ObservableObject {
     var currentInterval: TimeInterval { settings.probeInterval(onExpensiveNetwork: onExpensiveNetwork) }
 
     var scheduleDescription: String {
-        let base = settings.scheduleDescription(onExpensiveNetwork: onExpensiveNetwork)
+        #if os(iOS)
+        let label = "cellular"
+        #else
+        let label = "tethered"
+        #endif
+        let base = settings.scheduleDescription(onExpensiveNetwork: onExpensiveNetwork, expensiveLabel: label)
         guard isCheckingFaster, let fast = settings.fastProbeInterval(base: currentInterval) else { return base }
         return base + " (now every \(Int(fast)) s after a change)"
     }
@@ -96,26 +103,30 @@ final class ConnectivityMonitor: ObservableObject {
         self.evaluator = StatusEvaluator(configuration: settings.makeEvaluatorConfiguration(interval: settings.interval))
     }
 
+    private var started = false
+
+    /// Starts watching the network and probing. Safe to call more than once.
     func start() {
+        guard !started else { return }
+        started = true
         observers.append(NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.reloadSettings() }
         })
+        #if os(macOS)
         let workspace = NSWorkspace.shared.notificationCenter
         observers.append(workspace.addObserver(
             forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.onSleep?()
-                self?.stopLoop()
-            }
+            MainActor.assumeIsolated { self?.pause() }
         })
         observers.append(workspace.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.networkChanged() }
+            MainActor.assumeIsolated { self?.resume() }
         })
+        #endif
 
         pathMonitor.pathUpdateHandler = { [weak self] path in
             let satisfied = path.status == .satisfied
@@ -141,6 +152,18 @@ final class ConnectivityMonitor: ObservableObject {
         pathMonitor.start(queue: DispatchQueue(label: "OnlineStatus.path"))
 
         restartLoop()
+    }
+
+    /// Stop probing for now: the Mac is going to sleep, or the iOS app went to the background.
+    func pause() {
+        onSleep?()
+        stopLoop()
+    }
+
+    /// Start again after `pause()`: judge afresh and probe right away.
+    func resume() {
+        guard started else { return start() }
+        networkChanged()
     }
 
     /// Run a probe right away and continue the schedule from there.

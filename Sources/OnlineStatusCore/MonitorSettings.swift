@@ -187,10 +187,11 @@ public struct MonitorSettings: Equatable, Sendable {
         fastAfterChange ? min(fastInterval, base) : nil
     }
 
-    /// E.g. "Ping 8.8.8.8, every 30 s (tethered)".
-    public func scheduleDescription(onExpensiveNetwork expensive: Bool) -> String {
+    /// E.g. "Ping 8.8.8.8, every 30 s (tethered)". `expensiveLabel` names the slower network
+    /// ("tethered" on a Mac, "cellular" on an iPhone).
+    public func scheduleDescription(onExpensiveNetwork expensive: Bool, expensiveLabel: String = "tethered") -> String {
         let seconds = Int(probeInterval(onExpensiveNetwork: expensive))
-        let suffix = expensive && tetheredBackoff ? " (tethered)" : ""
+        let suffix = expensive && tetheredBackoff ? " (\(expensiveLabel))" : ""
         return "\(targetDescription), every \(seconds) s\(suffix)"
     }
 

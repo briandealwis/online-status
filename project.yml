@@ -1,9 +1,10 @@
-# XcodeGen spec for building an archive for the Mac App Store:
+# XcodeGen spec for the Mac App Store archive and the iPhone app:
 #   brew install xcodegen && xcodegen generate && open OnlineStatus.xcodeproj
 name: OnlineStatus
 options:
   deploymentTarget:
     macOS: "14.0"
+    iOS: "17.0"
 packages:
   OnlineStatusPackage:
     path: .
@@ -11,6 +12,7 @@ targets:
   OnlineStatus:
     type: application
     platform: macOS
+    scheme: {}
     sources:
       - Sources/OnlineStatus
     dependencies:
@@ -23,6 +25,35 @@ targets:
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/OnlineStatus.entitlements
         ENABLE_HARDENED_RUNTIME: YES
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"
+
+  # The iPhone app. It shares the monitor, probes and chart with the Mac app
+  # (Sources/OnlineStatus/Shared) and probes only while it is open.
+  OnlineStatusiOS:
+    type: application
+    platform: iOS
+    scheme: {}
+    sources:
+      - iOS
+      - Sources/OnlineStatus/Shared
+    dependencies:
+      - package: OnlineStatusPackage
+        product: OnlineStatusCore
+    settings:
+      base:
+        PRODUCT_NAME: OnlineStatus
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.briandealwis.OnlineStatus
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: App/iOS-Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Online Status
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: 0.1.0
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "5.0"

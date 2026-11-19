@@ -223,11 +223,43 @@ change it in `project.yml` and in `App/Info.plist`.
 in the list above. App Transport Security applies to all other hosts. If you change the list,
 change `MonitorSettings.plainHTTPHosts` also.
 
+## iPhone application
+
+The project also contains an iPhone application. It shows the status, the graph and the
+statistics on one screen. It uses the same probes and the same status rules as the Mac
+application.
+
+The iPhone application does probes only while it is open. When you go to a different
+application, it stops. When you open it again, it starts the measurement again.
+
+On cellular data or in Low Data Mode, the application does fewer probes. By default, it does a
+probe each 30 seconds. You can change this value in Settings.
+
+To install the iPhone application, do these steps:
+
+1. Run these commands on your Mac:
+
+   ```sh
+   brew install xcodegen
+   xcodegen generate
+   open OnlineStatus.xcodeproj
+   ```
+
+2. In Xcode, select the `OnlineStatusiOS` scheme and your iPhone.
+3. In Signing & Capabilities, set your team.
+4. Select Product › Run.
+
+With a free Apple ID, the application stops after 7 days. Then you must install it again. With a
+paid Apple Developer account, this does not occur.
+
 ## Layout
 
 * `Sources/OnlineStatusCore`: The logic that does not change between platforms. This includes
   samples, statistics, status calculation, ICMP packet encoding and settings. The tests for this
   logic are in `Tests/`.
+* `Sources/OnlineStatus/Shared`: The monitor, the probes and the graph. The Mac application and
+  the iPhone application both use these files.
+* `iOS`: The iPhone application: the main screen and the settings.
 * `Sources/OnlineStatus`: The AppKit/SwiftUI application. This includes the probes, the monitor,
   the menu bar item, the graph and the settings.
 * `App/`: The `Info.plist` file and the entitlements. The SwiftPM script and the Xcode project

@@ -3,7 +3,8 @@ import PackageDescription
 
 let package = Package(
     name: "OnlineStatus",
-    platforms: [.macOS(.v14)],
+    // iOS is for the iPhone app's Xcode target, which uses OnlineStatusCore.
+    platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
         .library(name: "OnlineStatusCore", targets: ["OnlineStatusCore"]),
         .executable(name: "OnlineStatus", targets: ["OnlineStatus"]),

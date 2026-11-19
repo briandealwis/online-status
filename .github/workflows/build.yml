@@ -28,5 +28,9 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen generate
-      - name: Build with Xcode
+      - name: Build Mac app with Xcode
         run: xcodebuild -project OnlineStatus.xcodeproj -scheme OnlineStatus -configuration Release CODE_SIGNING_ALLOWED=NO build
+      - name: Build iPhone app for the Simulator
+        run: |
+          xcodebuild -project OnlineStatus.xcodeproj -scheme OnlineStatusiOS -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
