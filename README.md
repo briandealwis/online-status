@@ -53,7 +53,8 @@ source code. To make them on your Mac, run
 
 The application does one probe at an interval. The default interval is 10 seconds. The default
 timeout is 3 seconds. You can change these values in Settings. A timeout is a failure. Only one
-probe operates at a time.
+probe operates at a time. Each wait between probes changes by a random amount of up to
+10%. Thus the probes do not occur at exactly the same interval as other periodic events.
 
 When the status changes, the application does probes more frequently for a short time. Thus
 you can see how long a drop or a recovery continues. By default, the application does a probe

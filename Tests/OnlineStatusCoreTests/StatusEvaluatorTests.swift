@@ -364,6 +364,17 @@ final class MonitorSettingsTests: XCTestCase {
         XCTAssertNil(settings.fastProbeInterval(base: 10))
     }
 
+    func testJitter() {
+        XCTAssertEqual(MonitorSettings.jittered(10, unit: 0), 9, accuracy: 1e-9)
+        XCTAssertEqual(MonitorSettings.jittered(10, unit: 0.5), 10, accuracy: 1e-9)
+        XCTAssertEqual(MonitorSettings.jittered(10, unit: 1), 11, accuracy: 1e-9)
+        XCTAssertEqual(MonitorSettings.jittered(2, unit: 7), 2.2, accuracy: 1e-9, "unit is clamped")
+        for _ in 0..<100 {
+            let value = MonitorSettings.jittered(30, unit: Double.random(in: 0...1))
+            XCTAssertTrue((27...33).contains(value))
+        }
+    }
+
     func testTetheredBackoff() {
         let store = UserDefaults(suiteName: "MonitorSettingsTests-\(UUID().uuidString)")!
         var settings = MonitorSettings(defaults: store)

@@ -181,6 +181,17 @@ public struct MonitorSettings: Equatable, Sendable {
         expensive && tetheredBackoff ? tetheredInterval : interval
     }
 
+    /// How much each wait between probes varies, as a fraction of the interval (±10%).
+    public static let jitter = 0.1
+
+    /// `interval` varied by up to ±`jitter`, so probes don't fall into lockstep with anything
+    /// periodic on the network, or with other copies of the app. `unit` is a random number
+    /// from 0 to 1.
+    public static func jittered(_ interval: TimeInterval, unit: Double) -> TimeInterval {
+        let unit = min(max(unit, 0), 1)
+        return interval * (1 + jitter * (2 * unit - 1))
+    }
+
     /// Seconds between probes while checking faster after a change, or nil if that's off.
     /// Never slower than `base`.
     public func fastProbeInterval(base: TimeInterval) -> TimeInterval? {

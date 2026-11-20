@@ -245,7 +245,8 @@ final class ConnectivityMonitor: ObservableObject {
                 }
                 guard !Task.isCancelled, let self else { return }
                 self.record(sample)
-                let wait = Duration.milliseconds(Int64(self.nextProbeInterval * 1000)) - (clock.now - began)
+                let interval = MonitorSettings.jittered(self.nextProbeInterval, unit: Double.random(in: 0...1))
+                let wait = Duration.milliseconds(Int64(interval * 1000)) - (clock.now - began)
                 if wait > .zero {
                     try? await Task.sleep(for: wait)
                 }
